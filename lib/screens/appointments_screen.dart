@@ -18,6 +18,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
   List _salesInvoices = [];
   List _users = [];
   List _products = [];
+  bool _isLoadingData = false;
   
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
@@ -35,19 +36,27 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     _loadData();
   }
 
-  void _loadData() async {
+  Future<void> _loadData() async {
+    if (mounted) setState(() => _isLoadingData = true);
     try {
       final invoices = await DatabaseHelper.instance.getSalesInvoices();
       final usersList = await DatabaseHelper.instance.getUsers();
       final productsList = await DatabaseHelper.instance.getProducts();
 
+      if (!mounted) return;
       setState(() {
         _salesInvoices = invoices;
         _users = usersList;
         _products = productsList;
+        _isLoadingData = false;
       });
     } catch (e) {
       print("خطأ: $e");
+      if (!mounted) return;
+      setState(() => _isLoadingData = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ تعذر تحميل بيانات الفاتورة: $e'), backgroundColor: Colors.red),
+      );
     }
   }
 
@@ -293,9 +302,29 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     );
   }
 
-  void _showAddSalesInvoiceDialog({Map? invoiceToEdit}) {
+  Future<void> _showAddSalesInvoiceDialog({Map? invoiceToEdit}) async {
+    // The page can be displayed before its first async database read finishes.
+    // Reload once when the user explicitly asks to add an invoice.
+    if (_isLoadingData || _users.isEmpty || _products.isEmpty) {
+      await _loadData();
+    }
+
     if (_users.isEmpty || _products.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('⚠️ يجب توفر عملاء ومنتجات أولاً!')));
+      if (!mounted) return;
+      final missing = [
+        if (_users.isEmpty) 'عميل واحد على الأقل',
+        if (_products.isEmpty) 'منتج واحد على الأقل',
+      ].join(' و');
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('لا يمكن إنشاء الفاتورة'),
+          content: Text('يرجى إضافة $missing أولاً، ثم اضغط زر + مرة أخرى.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('حسنًا')),
+          ],
+        ),
+      );
       return;
     }
 
@@ -639,7 +668,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddSalesInvoiceDialog(),
         backgroundColor: Colors.teal,
-        child: const Icon(Icons.add),
+        child: _isLoadingData
+            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+            : const Icon(Icons.add),
       ),
       body: Container(
         color: Colors.white,
