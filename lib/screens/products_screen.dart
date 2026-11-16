@@ -268,6 +268,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
     String selectedStatus = isEditing ? productToEdit.status : 'متوفر';
     bool isForSale = isEditing ? productToEdit.isForSale : true;
     bool isForRent = isEditing ? productToEdit.isForRent : false;
+    String rentalStatus = isEditing ? productToEdit.rentalStatus : 'متاح';
     String? productImagePath = isEditing ? productToEdit.imagePath : null;
     String? barcodeImagePath = isEditing ? productToEdit.barcodeImagePath : null;
 
@@ -431,10 +432,24 @@ class _ProductsScreenState extends State<ProductsScreen> {
                     activeColor: Colors.teal,
                   ),
                   if (isForRent)
-                    TextField(
-                      controller: rentalPriceCtrl,
-                      decoration: const InputDecoration(labelText: 'سعر الإيجار', border: OutlineInputBorder(), prefixIcon: Icon(Icons.home_work_outlined)),
-                      keyboardType: TextInputType.number,
+                    Column(
+                      children: [
+                        TextField(
+                          controller: rentalPriceCtrl,
+                          decoration: const InputDecoration(labelText: 'سعر الإيجار', border: OutlineInputBorder(), prefixIcon: Icon(Icons.home_work_outlined)),
+                          keyboardType: TextInputType.number,
+                        ),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String>(
+                          value: rentalStatus,
+                          items: const [
+                            DropdownMenuItem(value: 'متاح', child: Text('متاح للإيجار')),
+                            DropdownMenuItem(value: 'محجوز للإيجار', child: Text('محجوز للإيجار')),
+                          ],
+                          onChanged: (value) => setDialogState(() => rentalStatus = value ?? 'متاح'),
+                          decoration: const InputDecoration(labelText: 'حالة الإيجار', border: OutlineInputBorder()),
+                        ),
+                      ],
                     ),
                 ],
               ),
@@ -493,6 +508,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   isForSale: isForSale,
                   isForRent: isForRent,
                   rentalPrice: double.tryParse(rentalPriceCtrl.text) ?? 0.0,
+                  rentalStatus: isForRent ? rentalStatus : 'متاح',
                 );
 
                 if (isEditing) {
@@ -610,7 +626,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Text(
-                                    '$name  •  كود: $code  •  التصنيف: ${prodMap['categoryName'] ?? "بدون"}  •  الكمية: ${prodMap['quantity']}  •  سعر المبيع: ${prodMap['sellingPrice']} ل.س',
+                                    '$name  •  كود: $code  •  التصنيف: ${prodMap['categoryName'] ?? "بدون"}  •  الكمية: ${prodMap['quantity']}  •  سعر المبيع: ${prodMap['sellingPrice']} ل.س  •  الإيجار: ${prodMap['isForRent'] == 1 ? (prodMap['rentalStatus'] ?? "متاح") : "غير مفعل"}',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     textDirection: TextDirection.rtl,

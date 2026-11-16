@@ -350,6 +350,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     final quantityCtrl = TextEditingController(text: '1');
     final paidCtrl = TextEditingController(text: isEditing ? invoiceToEdit['paidAmount'].toString() : '');
     String transactionType = 'sale';
+    String? rentalStartDate;
+    String? rentalEndDate;
 
     List invoiceItems = isEditing ? List.from(invoiceToEdit['items'] ?? []) : [];
     bool isPaidManuallyEdited = isEditing;
@@ -374,12 +376,40 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
           final dialogContentWidth = isCompact ? screenWidth * 0.88 - 48 : 850.0;
 
           void selectProduct(Product? product) {
+            if (product != null && product.isForRent && product.rentalStatus == 'محجوز للإيجار') {
+              setDialogState(() => selectedProduct = null);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('⚠️ هذا المنتج محجوز للإيجار ولا يمكن حجزه مرة أخرى.'), backgroundColor: Colors.orange),
+              );
+              return;
+            }
             setDialogState(() {
               selectedProduct = product;
               if (product == null) return;
               transactionType = product.isForSale ? 'sale' : 'rent';
               sellingPriceCtrl.text = (transactionType == 'rent' ? product.rentalPrice : product.sellingPrice).toString();
               quantityCtrl.text = '1';
+              rentalStartDate = null;
+              rentalEndDate = null;
+            });
+          }
+
+          Future<void> chooseRentalDate({required bool isStart}) async {
+            final initial = DateTime.tryParse(isStart ? (rentalStartDate ?? '') : (rentalEndDate ?? '')) ?? DateTime.now();
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: initial,
+              firstDate: DateTime(2020),
+              lastDate: DateTime(2100),
+            );
+            if (picked == null) return;
+            final value = picked.toIso8601String().split('T').first;
+            setDialogState(() {
+              if (isStart) {
+                rentalStartDate = value;
+              } else {
+                rentalEndDate = value;
+              }
             });
           }
 
@@ -494,6 +524,10 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                               ],
                               onChanged: (value) {
                                 if (value == null || selectedProduct == null) return;
+                                if (value == 'rent' && selectedProduct!.rentalStatus == 'محجوز للإيجار') {
+                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('⚠️ هذا المنتج محجوز للإيجار ولا يمكن حجزه مرة أخرى.'), backgroundColor: Colors.orange));
+                                  return;
+                                }
                                 setDialogState(() {
                                   transactionType = value;
                                   sellingPriceCtrl.text = (value == 'rent' ? selectedProduct!.rentalPrice : selectedProduct!.sellingPrice).toString();
@@ -508,6 +542,29 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                             child: Text(
                               transactionType == 'rent' ? 'المنتج للإيجار' : 'المنتج للبيع',
                               style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        if (selectedProduct != null && selectedProduct!.isForRent && transactionType == 'rent')
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    icon: const Icon(Icons.event),
+                                    label: Text(rentalStartDate == null ? 'تاريخ بداية الإيجار' : 'البداية: $rentalStartDate'),
+                                    onPressed: () => chooseRentalDate(isStart: true),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    icon: const Icon(Icons.event_available),
+                                    label: Text(rentalEndDate == null ? 'تاريخ انتهاء الإيجار' : 'النهاية: $rentalEndDate'),
+                                    onPressed: () => chooseRentalDate(isStart: false),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         SizedBox(
@@ -547,6 +604,14 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                             label: const Text('إضافة المنتج للفاتورة'),
                             onPressed: () {
                             if (selectedProduct != null) {
+                              if (transactionType == 'rent' && (rentalStartDate == null || rentalEndDate == null)) {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('⚠️ يرجى تحديد تاريخ بداية ونهاية الإيجار'), backgroundColor: Colors.orange));
+                                return;
+                              }
+                              if (transactionType == 'rent' && rentalStartDate!.compareTo(rentalEndDate!) > 0) {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('⚠️ تاريخ انتهاء الإيجار يجب أن يكون بعد تاريخ البداية'), backgroundColor: Colors.orange));
+                                return;
+                              }
                               double price = double.tryParse(sellingPriceCtrl.text) ?? 0.0;
                               int qty = int.tryParse(quantityCtrl.text) ?? 1;
 
@@ -567,9 +632,13 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                                   'quantity': qty,
                                   'total': total,
                                   'transactionType': transactionType,
+                                  'rentalStartDate': transactionType == 'rent' ? rentalStartDate : null,
+                                  'rentalEndDate': transactionType == 'rent' ? rentalEndDate : null,
                                 });
                                 selectedProduct = null;
                                 transactionType = 'sale';
+                                rentalStartDate = null;
+                                rentalEndDate = null;
                                 sellingPriceCtrl.clear();
                                 quantityCtrl.text = '1';
                                 barcodeCtrl.clear();
@@ -598,7 +667,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                                   margin: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
                                   child: ListTile(
                                     dense: true,
-                                    title: Text('${index + 1}. ${item['transactionType'] == 'rent' ? 'إيجار' : 'بيع'}: ${item['productName']} | السعر: ${item['price']} | الكمية: ${item['quantity']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    title: Text('${index + 1}. ${item['transactionType'] == 'rent' ? 'إيجار' : 'بيع'}: ${item['productName']} | السعر: ${item['price']} | الكمية: ${item['quantity']}${item['transactionType'] == 'rent' ? ' | من ${item['rentalStartDate']} إلى ${item['rentalEndDate']}' : ''}', style: const TextStyle(fontWeight: FontWeight.bold)),
                                     trailing: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [

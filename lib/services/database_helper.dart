@@ -20,7 +20,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 6, // إضافة نوع العملية إلى بنود الفواتير
+      version: 7, // إضافة حالة حجز الإيجار وتواريخ الإيجار
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -60,6 +60,7 @@ class DatabaseHelper {
         isForSale INTEGER NOT NULL DEFAULT 1,
         isForRent INTEGER NOT NULL DEFAULT 0,
         rentalPrice REAL NOT NULL DEFAULT 0.0,
+        rentalStatus TEXT NOT NULL DEFAULT 'متاح',
         FOREIGN KEY (categoryId) REFERENCES categories (id) ON DELETE CASCADE
       )
     ''');
@@ -118,6 +119,8 @@ class DatabaseHelper {
         quantity INTEGER NOT NULL,
         total REAL NOT NULL,
         transactionType TEXT NOT NULL DEFAULT 'sale',
+        rentalStartDate TEXT,
+        rentalEndDate TEXT,
         FOREIGN KEY (invoiceId) REFERENCES sales_invoices (id) ON DELETE CASCADE,
         FOREIGN KEY (productId) REFERENCES products (id) ON DELETE CASCADE
       )
@@ -175,6 +178,18 @@ class DatabaseHelper {
       try {
         await db.execute("ALTER TABLE invoice_items ADD COLUMN transactionType TEXT NOT NULL DEFAULT 'sale'");
       } catch (_) {}
+    }
+
+    if (oldVersion < 7) {
+      for (final statement in [
+        "ALTER TABLE products ADD COLUMN rentalStatus TEXT NOT NULL DEFAULT 'متاح'",
+        'ALTER TABLE invoice_items ADD COLUMN rentalStartDate TEXT',
+        'ALTER TABLE invoice_items ADD COLUMN rentalEndDate TEXT',
+      ]) {
+        try {
+          await db.execute(statement);
+        } catch (_) {}
+      }
     }
   }
 
@@ -296,6 +311,9 @@ class DatabaseHelper {
       if (prodResult.isNotEmpty) {
         int availableQty = (prodResult.first['quantity'] as num?)?.toInt() ?? 0;
         String prodName = prodResult.first['name']?.toString() ?? 'منتج';
+        if (item['transactionType'] == 'rent' && prodResult.first['rentalStatus']?.toString() == 'محجوز للإيجار') {
+          return '⚠️ المنتج ($prodName) محجوز للإيجار ولا يمكن حجزه مرة أخرى.';
+        }
         if (requestedQty > availableQty) {
           return '⚠️ الكمية المطلوبة للمنتج ($prodName) أكبر من المتوفر في المخزون ($availableQty فقط)!';
         }
@@ -325,7 +343,18 @@ class DatabaseHelper {
           'quantity': qty,
           'total': item['total'],
           'transactionType': item['transactionType'] ?? 'sale',
+          'rentalStartDate': item['rentalStartDate'],
+          'rentalEndDate': item['rentalEndDate'],
         });
+
+        if (item['transactionType'] == 'rent') {
+          await txn.update(
+            'products',
+            {'rentalStatus': 'محجوز للإيجار'},
+            where: 'id = ?',
+            whereArgs: [prodId],
+          );
+        }
 
         // خصم الكمية المباعة من مخزون المنتج الكلي
         await txn.rawUpdate('''

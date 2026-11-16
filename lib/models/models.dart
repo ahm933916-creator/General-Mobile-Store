@@ -12,6 +12,7 @@ class Product {
   final bool isForSale;
   final bool isForRent;
   final double rentalPrice;
+  final String rentalStatus;
 
   Product({
     this.id,
@@ -27,6 +28,7 @@ class Product {
     this.isForSale = true,
     this.isForRent = false,
     this.rentalPrice = 0.0,
+    this.rentalStatus = 'متاح',
   });
 
   // تحويل الكود إلى خريطة (Map) لتخزينه في قاعدة البيانات SQLite
@@ -45,6 +47,7 @@ class Product {
       'isForSale': isForSale ? 1 : 0,
       'isForRent': isForRent ? 1 : 0,
       'rentalPrice': rentalPrice,
+      'rentalStatus': rentalStatus,
     };
   }
 
@@ -64,6 +67,7 @@ class Product {
       isForSale: (map['isForSale'] as num?)?.toInt() != 0,
       isForRent: (map['isForRent'] as num?)?.toInt() == 1,
       rentalPrice: (map['rentalPrice'] as num?)?.toDouble() ?? 0.0,
+      rentalStatus: map['rentalStatus']?.toString() ?? 'متاح',
     );
   }
 }
