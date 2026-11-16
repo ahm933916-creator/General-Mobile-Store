@@ -1,0 +1,32 @@
+name: flutter_app_complete
+description: "A new Flutter project."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  shared_preferences: ^2.2.2  
+  cupertino_icons: ^1.0.2
+  sqflite: ^2.4.5
+  sqflite_common_ffi: ^2.4.5
+  path: ^1.9.1
+  intl: ^0.19.0
+  file_picker: ^8.0.0  # <--- أضف هذا السطر هنا
+  pdf: ^3.10.7
+  printing: ^5.11.1
+  qr_flutter: ^4.1.0
+  path_provider: ^2.1.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/fonts/Cairo-Regular.ttf
