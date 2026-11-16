@@ -356,7 +356,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
           double remainingDebt = totalInvoice - paidAmount;
           if (remainingDebt < 0) remainingDebt = 0;
           final screenWidth = MediaQuery.sizeOf(context).width;
-          final isCompact = screenWidth < 700;
+          // Treat tablet-sized windows as compact too; otherwise the product
+          // fields become narrow when the dialog is shown in a 900px window.
+          final isCompact = screenWidth < 1000;
           final dialogContentWidth = isCompact ? screenWidth * 0.88 - 48 : 850.0;
 
           return AlertDialog(
@@ -369,6 +371,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         SizedBox(width: dialogContentWidth, child: TextField(controller: invoiceNumberCtrl, decoration: const InputDecoration(labelText: 'رقم الفاتورة', border: OutlineInputBorder()), readOnly: true)),
                         const SizedBox(height: 10),
@@ -429,6 +432,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                     const Divider(height: 30, thickness: 2),
 
                     Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         SizedBox(
                           width: isCompact ? dialogContentWidth : 300,
@@ -481,11 +485,13 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                             ),
                           ),
                         ),
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12)),
-                          icon: const Icon(Icons.add),
-                          label: const Text('إضافة'),
-                          onPressed: () {
+                        SizedBox(
+                          width: isCompact ? dialogContentWidth : null,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12)),
+                            icon: const Icon(Icons.add),
+                            label: const Text('إضافة المنتج للفاتورة'),
+                            onPressed: () {
                             if (selectedProduct != null) {
                               double price = double.tryParse(sellingPriceCtrl.text) ?? 0.0;
                               int qty = int.tryParse(quantityCtrl.text) ?? 1;
@@ -513,7 +519,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                                 barcodeCtrl.clear();
                               });
                             }
-                          },
+                            },
+                          ),
                         ),
                       ],
                     ),
