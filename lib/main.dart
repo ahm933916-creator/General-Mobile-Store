@@ -26,7 +26,13 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
         useMaterial3: true,
         visualDensity: VisualDensity.adaptivePlatformDensity,
-        textTheme: baseTextTheme.apply(fontSizeFactor: 1.08),
+        textTheme: baseTextTheme.copyWith(
+          bodyLarge: baseTextTheme.bodyLarge?.copyWith(fontSize: 17),
+          bodyMedium: baseTextTheme.bodyMedium?.copyWith(fontSize: 16),
+          bodySmall: baseTextTheme.bodySmall?.copyWith(fontSize: 14),
+          labelLarge: baseTextTheme.labelLarge?.copyWith(fontSize: 15),
+          titleMedium: baseTextTheme.titleMedium?.copyWith(fontSize: 17),
+        ),
         inputDecorationTheme: const InputDecorationTheme(
           isDense: false,
           contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 15),
