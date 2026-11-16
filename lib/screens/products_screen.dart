@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/models.dart';
 import '../services/database_helper.dart';
+import '../services/image_storage_service.dart';
 import 'categories_screen.dart';
 
 class ProductsScreen extends StatefulWidget {
@@ -164,10 +166,11 @@ class _ProductsScreenState extends State<ProductsScreen> {
                 ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
                 Uint8List pngBytes = byteData!.buffer.asUint8List();
 
-                final directory = Directory('/home/${Platform.environment['USER']}/Downloads');
-                String savePath = directory.existsSync()
-                    ? '${directory.path}/products_table_report_${DateTime.now().millisecondsSinceEpoch}.png'
-                    : '/tmp/products_table_report_${DateTime.now().millisecondsSinceEpoch}.png';
+                final prefs = await SharedPreferences.getInstance();
+                final configuredDirectory = prefs.getString('save_directory');
+                final directory = Directory(configuredDirectory ?? '/home/${Platform.environment['USER']}/Downloads');
+                await directory.create(recursive: true);
+                String savePath = '${directory.path}/products_table_report_${DateTime.now().millisecondsSinceEpoch}.png';
 
                 await File(savePath).writeAsBytes(pngBytes);
 
@@ -225,6 +228,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
     }
 
     final isEditing = productToEdit != null;
+    final dialogWidth = MediaQuery.sizeOf(context).width < 700 ? MediaQuery.sizeOf(context).width * 0.88 : 580.0;
     final barcodeCtrl = TextEditingController(text: isEditing ? productToEdit.code : 'BC-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}');
     final nameCtrl = TextEditingController(text: isEditing ? productToEdit.name : '');
     final quantityCtrl = TextEditingController(text: isEditing ? productToEdit.quantity.toString() : '1');
@@ -240,9 +244,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text(isEditing ? 'تعديل منتج' : 'إضافة منتج جديد', textDirection: TextDirection.rtl),
-          content: SizedBox(
-            width: 580,
+            title: Text(isEditing ? 'تعديل منتج' : 'إضافة منتج جديد', textDirection: TextDirection.rtl),
+            content: SizedBox(
+              width: dialogWidth,
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -373,13 +377,33 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   return;
                 }
 
+                String? permanentProductImage;
+                String? permanentBarcodeImage;
+                try {
+                  permanentProductImage = await ImageStorageService.copyToConfiguredDirectory(
+                    sourcePath: productImagePath,
+                    prefix: 'product_${barcodeCtrl.text.trim()}',
+                  );
+                  permanentBarcodeImage = await ImageStorageService.copyToConfiguredDirectory(
+                    sourcePath: barcodeImagePath,
+                    prefix: 'barcode_${barcodeCtrl.text.trim()}',
+                  );
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('❌ تعذر حفظ الصور في مجلد الإعدادات: $e'), backgroundColor: Colors.red),
+                    );
+                  }
+                  return;
+                }
+
                 final product = Product(
                   id: isEditing ? productToEdit.id : null,
                   code: barcodeCtrl.text.trim(),
                   name: nameCtrl.text.trim(),
                   categoryId: selectedCategoryId,
-                  imagePath: productImagePath,
-                  barcodeImagePath: barcodeImagePath,
+                  imagePath: permanentProductImage ?? productImagePath,
+                  barcodeImagePath: permanentBarcodeImage ?? barcodeImagePath,
                   status: selectedStatus,
                   quantity: int.tryParse(quantityCtrl.text) ?? 1,
                   purchasePrice: double.tryParse(purchasePriceCtrl.text) ?? 0.0,
@@ -457,9 +481,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
             Expanded(
               child: filteredProducts.isEmpty
                   ? const Center(child: Text('لا توجد منتجات مسجلة'))
-                  : ListView.builder(
-                      itemCount: filteredProducts.length,
-                      itemBuilder: (context, index) {
+                      : ListView.builder(
+                          itemCount: filteredProducts.length,
+                          itemBuilder: (context, index) {
                         final prodMap = filteredProducts[index];
                         String? img = prodMap['imagePath'];
                         String? barcodeImg = prodMap['barcodeImagePath'];
@@ -467,9 +491,10 @@ class _ProductsScreenState extends State<ProductsScreen> {
                         String code = prodMap['code'] ?? '';
 
                         return Card(
-                          margin: const EdgeInsets.symmetric(vertical: 4),
-                          child: ListTile(
-                            leading: Row(
+                          margin: const EdgeInsets.symmetric(vertical: 3),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                            child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 InkWell(
@@ -497,16 +522,26 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                         : const Icon(Icons.qr_code, color: Colors.teal, size: 22),
                                   ),
                                 ),
-                              ],
-                            ),
-                            title: Text('$name (كود: $code)', style: const TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: Text('التصنيف: ${prodMap['categoryName'] ?? "بدون"} | الكمية: ${prodMap['quantity']} | سعر المبيع: ${prodMap['sellingPrice']} ل.س'),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(icon: const Icon(Icons.edit, color: Colors.blue), onPressed: () => _showProductDialog(productToEdit: Product.fromMap(Map<String, dynamic>.from(prodMap)))),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    '$name  •  كود: $code  •  التصنيف: ${prodMap['categoryName'] ?? "بدون"}  •  الكمية: ${prodMap['quantity']}  •  سعر المبيع: ${prodMap['sellingPrice']} ل.س',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    textDirection: TextDirection.rtl,
+                                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                                  ),
+                                ),
                                 IconButton(
-                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  visualDensity: VisualDensity.compact,
+                                  tooltip: 'تعديل',
+                                  icon: const Icon(Icons.edit, color: Colors.blue, size: 21),
+                                  onPressed: () => _showProductDialog(productToEdit: Product.fromMap(Map<String, dynamic>.from(prodMap))),
+                                ),
+                                IconButton(
+                                  visualDensity: VisualDensity.compact,
+                                  tooltip: 'حذف',
+                                  icon: const Icon(Icons.delete, color: Colors.red, size: 21),
                                   onPressed: () async {
                                     await DatabaseHelper.instance.deleteProduct(prodMap['id']);
                                     _loadData();

@@ -18,12 +18,23 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final baseTextTheme = ThemeData.light().textTheme;
     return MaterialApp(
       title: 'إدارة المواعيد والمنتجات',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
         useMaterial3: true,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+        textTheme: baseTextTheme.apply(fontSizeFactor: 1.08),
+        inputDecorationTheme: const InputDecorationTheme(
+          isDense: false,
+          contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 15),
+          labelStyle: TextStyle(fontSize: 15),
+        ),
+        dropdownMenuTheme: const DropdownMenuThemeData(
+          textStyle: TextStyle(fontSize: 15),
+        ),
       ),
       home: const HomeScreen(),
     );

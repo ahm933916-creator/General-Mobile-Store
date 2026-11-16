@@ -326,21 +326,29 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
           double paidAmount = double.tryParse(paidCtrl.text) ?? totalInvoice;
           double remainingDebt = totalInvoice - paidAmount;
           if (remainingDebt < 0) remainingDebt = 0;
+          final screenWidth = MediaQuery.sizeOf(context).width;
+          final isCompact = screenWidth < 700;
 
           return AlertDialog(
             title: Text(isEditing ? 'تعديل فاتورة مبيعات' : 'إنشاء فاتورة مبيعات جديدة', textDirection: TextDirection.rtl),
             content: SizedBox(
-              width: 850,
+              width: isCompact ? screenWidth * 0.88 : 850,
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    Flex(
+                      direction: isCompact ? Axis.vertical : Axis.horizontal,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Expanded(child: TextField(controller: invoiceNumberCtrl, decoration: const InputDecoration(labelText: 'رقم الفاتورة', border: OutlineInputBorder()), readOnly: true)),
-                        const SizedBox(width: 10),
-                        Expanded(child: TextField(controller: TextEditingController(text: invoiceDate), decoration: const InputDecoration(labelText: 'تاريخ الفاتورة', border: OutlineInputBorder()), readOnly: true)),
+                        isCompact
+                            ? SizedBox(width: double.infinity, child: TextField(controller: invoiceNumberCtrl, decoration: const InputDecoration(labelText: 'رقم الفاتورة', border: OutlineInputBorder()), readOnly: true))
+                            : Expanded(child: TextField(controller: invoiceNumberCtrl, decoration: const InputDecoration(labelText: 'رقم الفاتورة', border: OutlineInputBorder()), readOnly: true)),
+                        SizedBox(width: isCompact ? 0 : 10, height: isCompact ? 10 : 0),
+                        isCompact
+                            ? SizedBox(width: double.infinity, child: TextField(controller: TextEditingController(text: invoiceDate), decoration: const InputDecoration(labelText: 'تاريخ الفاتورة', border: OutlineInputBorder()), readOnly: true))
+                            : Expanded(child: TextField(controller: TextEditingController(text: invoiceDate), decoration: const InputDecoration(labelText: 'تاريخ الفاتورة', border: OutlineInputBorder()), readOnly: true)),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -396,10 +404,12 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
 
                     const Divider(height: 30, thickness: 2),
 
-                    Row(
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
                       children: [
-                        Expanded(
-                          flex: 2,
+                        SizedBox(
+                          width: isCompact ? double.infinity : 300,
                           child: DropdownButtonFormField<Product>(
                             value: selectedProduct,
                             hint: const Text('المنتج المحدد'),
@@ -420,8 +430,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                             decoration: const InputDecoration(border: OutlineInputBorder()),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
+                        SizedBox(
+                          width: isCompact ? double.infinity : 150,
                           child: TextField(
                             controller: sellingPriceCtrl,
                             decoration: const InputDecoration(labelText: 'سعر المبيع', border: OutlineInputBorder()),
@@ -429,8 +439,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                             onChanged: (_) => setDialogState(() {}),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
+                        SizedBox(
+                          width: isCompact ? double.infinity : 120,
                           child: TextField(
                             controller: quantityCtrl,
                             decoration: const InputDecoration(labelText: 'الكمية', border: OutlineInputBorder()),
@@ -438,8 +448,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                             onChanged: (_) => setDialogState(() {}),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
+                        SizedBox(
+                          width: isCompact ? double.infinity : 180,
                           child: Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.grey.shade400)),
@@ -449,7 +459,6 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12)),
                           icon: const Icon(Icons.add),
