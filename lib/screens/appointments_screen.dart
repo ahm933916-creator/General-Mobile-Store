@@ -349,6 +349,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     final sellingPriceCtrl = TextEditingController();
     final quantityCtrl = TextEditingController(text: '1');
     final paidCtrl = TextEditingController(text: isEditing ? invoiceToEdit['paidAmount'].toString() : '');
+    String transactionType = 'sale';
 
     List invoiceItems = isEditing ? List.from(invoiceToEdit['items'] ?? []) : [];
     bool isPaidManuallyEdited = isEditing;
@@ -371,6 +372,16 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
           // fields become narrow when the dialog is shown in a 900px window.
           final isCompact = screenWidth < 1000;
           final dialogContentWidth = isCompact ? screenWidth * 0.88 - 48 : 850.0;
+
+          void selectProduct(Product? product) {
+            setDialogState(() {
+              selectedProduct = product;
+              if (product == null) return;
+              transactionType = product.isForSale ? 'sale' : 'rent';
+              sellingPriceCtrl.text = (transactionType == 'rent' ? product.rentalPrice : product.sellingPrice).toString();
+              quantityCtrl.text = '1';
+            });
+          }
 
           return AlertDialog(
             title: Text(isEditing ? 'تعديل فاتورة مبيعات' : 'إنشاء فاتورة مبيعات جديدة', textDirection: TextDirection.rtl),
@@ -418,11 +429,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                               final prod = _products.firstWhere(
                                 (p) => (p as Product).code.toLowerCase() == codeInput || (p as Product).name.toLowerCase().contains(codeInput),
                               ) as Product;
-                              setDialogState(() {
-                                selectedProduct = prod;
-                                sellingPriceCtrl.text = prod.sellingPrice.toString();
-                                quantityCtrl.text = '1';
-                              });
+                              selectProduct(prod);
                             } catch (_) {
                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('❌ المنتج غير موجود!')));
                             }
@@ -437,11 +444,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                                 barcodeCtrl.text = scannedCode;
                                 try {
                                   final prod = _products.firstWhere((p) => (p as Product).code.toLowerCase() == scannedCode.toLowerCase()) as Product;
-                                  setDialogState(() {
-                                    selectedProduct = prod;
-                                    sellingPriceCtrl.text = prod.sellingPrice.toString();
-                                    quantityCtrl.text = '1';
-                                  });
+                                  selectProduct(prod);
                                 } catch (_) {
                                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('⚠️ تم قراءة الكود، لكنه غير مسجل كمنتج')));
                                 }
@@ -456,11 +459,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                           final prod = _products.firstWhere(
                             (p) => (p as Product).code.toLowerCase() == codeInput,
                           ) as Product;
-                          setDialogState(() {
-                            selectedProduct = prod;
-                            sellingPriceCtrl.text = prod.sellingPrice.toString();
-                            quantityCtrl.text = '1';
-                          });
+                          selectProduct(prod);
                         } catch (_) {}
                       },
                     ),
@@ -480,23 +479,42 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                               final prod = p as Product;
                               return DropdownMenuItem<Product>(value: prod, child: Text('${prod.name} (متوفر: ${prod.quantity})'));
                             }).toList(),
-                            onChanged: (val) {
-                              setDialogState(() {
-                                selectedProduct = val;
-                                if (val != null) {
-                                  sellingPriceCtrl.text = val.sellingPrice.toString();
-                                  quantityCtrl.text = '1';
-                                }
-                              });
-                            },
+                            onChanged: selectProduct,
                             decoration: const InputDecoration(border: OutlineInputBorder()),
                           ),
                         ),
+                        if (selectedProduct != null && selectedProduct!.isForSale && selectedProduct!.isForRent)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: DropdownButtonFormField<String>(
+                              value: transactionType,
+                              items: const [
+                                DropdownMenuItem(value: 'sale', child: Text('بيع المنتج')),
+                                DropdownMenuItem(value: 'rent', child: Text('إيجار المنتج')),
+                              ],
+                              onChanged: (value) {
+                                if (value == null || selectedProduct == null) return;
+                                setDialogState(() {
+                                  transactionType = value;
+                                  sellingPriceCtrl.text = (value == 'rent' ? selectedProduct!.rentalPrice : selectedProduct!.sellingPrice).toString();
+                                });
+                              },
+                              decoration: const InputDecoration(labelText: 'نوع العملية', border: OutlineInputBorder()),
+                            ),
+                          ),
+                        if (selectedProduct != null && ((!selectedProduct!.isForSale && selectedProduct!.isForRent) || (selectedProduct!.isForSale && !selectedProduct!.isForRent)))
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              transactionType == 'rent' ? 'المنتج للإيجار' : 'المنتج للبيع',
+                              style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold),
+                            ),
+                          ),
                         SizedBox(
                           width: isCompact ? dialogContentWidth : 150,
                           child: TextField(
                             controller: sellingPriceCtrl,
-                            decoration: const InputDecoration(labelText: 'سعر المبيع', border: OutlineInputBorder()),
+                            decoration: InputDecoration(labelText: transactionType == 'rent' ? 'سعر الإيجار' : 'سعر المبيع', border: const OutlineInputBorder()),
                             keyboardType: TextInputType.number,
                             onChanged: (_) => setDialogState(() {}),
                           ),
@@ -548,8 +566,10 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                                   'price': price,
                                   'quantity': qty,
                                   'total': total,
+                                  'transactionType': transactionType,
                                 });
                                 selectedProduct = null;
+                                transactionType = 'sale';
                                 sellingPriceCtrl.clear();
                                 quantityCtrl.text = '1';
                                 barcodeCtrl.clear();
@@ -578,7 +598,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                                   margin: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
                                   child: ListTile(
                                     dense: true,
-                                    title: Text('${index + 1}. المنتج: ${item['productName']} | السعر: ${item['price']} | الكمية: ${item['quantity']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    title: Text('${index + 1}. ${item['transactionType'] == 'rent' ? 'إيجار' : 'بيع'}: ${item['productName']} | السعر: ${item['price']} | الكمية: ${item['quantity']}', style: const TextStyle(fontWeight: FontWeight.bold)),
                                     trailing: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [

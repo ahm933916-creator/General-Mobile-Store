@@ -20,7 +20,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 4, // تحديث الإصدار إلى 4 لدعم حقل الباركود الجديد
+      version: 6, // إضافة نوع العملية إلى بنود الفواتير
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -57,6 +57,9 @@ class DatabaseHelper {
         quantity INTEGER NOT NULL DEFAULT 1,
         purchasePrice REAL NOT NULL DEFAULT 0.0,
         sellingPrice REAL NOT NULL DEFAULT 0.0,
+        isForSale INTEGER NOT NULL DEFAULT 1,
+        isForRent INTEGER NOT NULL DEFAULT 0,
+        rentalPrice REAL NOT NULL DEFAULT 0.0,
         FOREIGN KEY (categoryId) REFERENCES categories (id) ON DELETE CASCADE
       )
     ''');
@@ -114,6 +117,7 @@ class DatabaseHelper {
         price REAL NOT NULL,
         quantity INTEGER NOT NULL,
         total REAL NOT NULL,
+        transactionType TEXT NOT NULL DEFAULT 'sale',
         FOREIGN KEY (invoiceId) REFERENCES sales_invoices (id) ON DELETE CASCADE,
         FOREIGN KEY (productId) REFERENCES products (id) ON DELETE CASCADE
       )
@@ -152,6 +156,24 @@ class DatabaseHelper {
     if (oldVersion < 4) {
       try {
         await db.execute('ALTER TABLE products ADD COLUMN barcodeImagePath TEXT;');
+      } catch (_) {}
+    }
+
+    if (oldVersion < 5) {
+      for (final statement in [
+        'ALTER TABLE products ADD COLUMN isForSale INTEGER NOT NULL DEFAULT 1',
+        'ALTER TABLE products ADD COLUMN isForRent INTEGER NOT NULL DEFAULT 0',
+        'ALTER TABLE products ADD COLUMN rentalPrice REAL NOT NULL DEFAULT 0.0',
+      ]) {
+        try {
+          await db.execute(statement);
+        } catch (_) {}
+      }
+    }
+
+    if (oldVersion < 6) {
+      try {
+        await db.execute("ALTER TABLE invoice_items ADD COLUMN transactionType TEXT NOT NULL DEFAULT 'sale'");
       } catch (_) {}
     }
   }
@@ -302,6 +324,7 @@ class DatabaseHelper {
           'price': item['price'],
           'quantity': qty,
           'total': item['total'],
+          'transactionType': item['transactionType'] ?? 'sale',
         });
 
         // خصم الكمية المباعة من مخزون المنتج الكلي

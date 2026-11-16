@@ -262,9 +262,12 @@ class _ProductsScreenState extends State<ProductsScreen> {
     final quantityCtrl = TextEditingController(text: isEditing ? productToEdit.quantity.toString() : '1');
     final purchasePriceCtrl = TextEditingController(text: isEditing ? productToEdit.purchasePrice.toString() : '0.0');
     final sellingPriceCtrl = TextEditingController(text: isEditing ? productToEdit.sellingPrice.toString() : '0.0');
+    final rentalPriceCtrl = TextEditingController(text: isEditing ? productToEdit.rentalPrice.toString() : '0.0');
     
     int selectedCategoryId = isEditing ? productToEdit.categoryId : _categories.first.id!;
     String selectedStatus = isEditing ? productToEdit.status : 'متوفر';
+    bool isForSale = isEditing ? productToEdit.isForSale : true;
+    bool isForRent = isEditing ? productToEdit.isForRent : false;
     String? productImagePath = isEditing ? productToEdit.imagePath : null;
     String? barcodeImagePath = isEditing ? productToEdit.barcodeImagePath : null;
 
@@ -390,15 +393,23 @@ class _ProductsScreenState extends State<ProductsScreen> {
                     decoration: const InputDecoration(labelText: 'التصنيف', border: OutlineInputBorder()),
                   ),
                   const SizedBox(height: 10),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('المنتج للبيع'),
+                    subtitle: const Text('عند إلغاء التفعيل لا يمكن تعديل الكمية والحالة وأسعار الشراء والمبيع'),
+                    value: isForSale,
+                    onChanged: (value) => setDialogState(() => isForSale = value ?? false),
+                    activeColor: Colors.teal,
+                  ),
                   Row(
                     children: [
-                      Expanded(child: TextField(controller: quantityCtrl, decoration: const InputDecoration(labelText: 'الكمية', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
+                      Expanded(child: TextField(controller: quantityCtrl, enabled: isForSale, decoration: const InputDecoration(labelText: 'الكمية', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
                       const SizedBox(width: 8),
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           value: selectedStatus,
                           items: ['متوفر', 'نفد المخزون', 'موقوف'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-                          onChanged: (val) => setDialogState(() => selectedStatus = val!),
+                          onChanged: isForSale ? (val) => setDialogState(() => selectedStatus = val!) : null,
                           decoration: const InputDecoration(labelText: 'الحالة', border: OutlineInputBorder()),
                         ),
                       ),
@@ -407,11 +418,24 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      Expanded(child: TextField(controller: purchasePriceCtrl, decoration: const InputDecoration(labelText: 'سعر الشراء', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
+                      Expanded(child: TextField(controller: purchasePriceCtrl, enabled: isForSale, decoration: const InputDecoration(labelText: 'سعر الشراء', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
                       const SizedBox(width: 8),
-                      Expanded(child: TextField(controller: sellingPriceCtrl, decoration: const InputDecoration(labelText: 'سعر المبيع', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
+                      Expanded(child: TextField(controller: sellingPriceCtrl, enabled: isForSale, decoration: const InputDecoration(labelText: 'سعر المبيع', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
                     ],
                   ),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('المنتج للإيجار'),
+                    value: isForRent,
+                    onChanged: (value) => setDialogState(() => isForRent = value ?? false),
+                    activeColor: Colors.teal,
+                  ),
+                  if (isForRent)
+                    TextField(
+                      controller: rentalPriceCtrl,
+                      decoration: const InputDecoration(labelText: 'سعر الإيجار', border: OutlineInputBorder(), prefixIcon: Icon(Icons.home_work_outlined)),
+                      keyboardType: TextInputType.number,
+                    ),
                 ],
               ),
             ),
@@ -423,6 +447,10 @@ class _ProductsScreenState extends State<ProductsScreen> {
               onPressed: () async {
                 if (barcodeCtrl.text.isEmpty || nameCtrl.text.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('⚠️ يرجى إدخال الكود والاسم')));
+                  return;
+                }
+                if (!isForSale && !isForRent) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('⚠️ يجب تفعيل البيع أو الإيجار على الأقل')));
                   return;
                 }
 
@@ -462,6 +490,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   quantity: int.tryParse(quantityCtrl.text) ?? 1,
                   purchasePrice: double.tryParse(purchasePriceCtrl.text) ?? 0.0,
                   sellingPrice: double.tryParse(sellingPriceCtrl.text) ?? 0.0,
+                  isForSale: isForSale,
+                  isForRent: isForRent,
+                  rentalPrice: double.tryParse(rentalPriceCtrl.text) ?? 0.0,
                 );
 
                 if (isEditing) {
