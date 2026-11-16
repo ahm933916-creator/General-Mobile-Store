@@ -87,7 +87,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('معاينة تقرير المبيعات والمواعيد كجدول للطباعة والحفظ', textDirection: TextDirection.rtl, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+        title: const Text('معاينة تقرير المبيعات والفواتير كجدول للطباعة والحفظ', textDirection: TextDirection.rtl, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
         content: SizedBox(
           width: 750,
           child: SingleChildScrollView(

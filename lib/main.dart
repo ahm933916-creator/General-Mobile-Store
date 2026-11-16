@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final baseTextTheme = ThemeData.light().textTheme;
     return MaterialApp(
-      title: 'إدارة المواعيد والمنتجات',
+      title: 'إدارة المبيعات والمنتجات',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),

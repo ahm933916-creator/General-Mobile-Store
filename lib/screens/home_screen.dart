@@ -42,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
           type: BottomNavigationBarType.fixed, // هام جداً لضمان ظهور أكثر من 4 عناصر بانتظام
           onTap: (index) => setState(() => _selectedIndex = index),
           items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: 'المواعيد'),
+            BottomNavigationBarItem(icon: Icon(Icons.point_of_sale), label: 'المبيعات'),
             BottomNavigationBarItem(icon: Icon(Icons.inventory_2), label: 'المنتجات'),
             BottomNavigationBarItem(icon: Icon(Icons.people), label: 'المستخدمين'),
             BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet), label: 'المصروفات'),
