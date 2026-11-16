@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/models.dart';
 import '../services/database_helper.dart';
+import 'barcode_scanner_screen.dart';
 
 class AppointmentsScreen extends StatefulWidget {
   const AppointmentsScreen({super.key});
@@ -302,6 +303,16 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     );
   }
 
+  Future<String?> _scanBarcodeWithCamera() async {
+    if (Platform.isLinux || Platform.isWindows) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ماسح الكاميرا متاح على الهاتف فقط.')));
+      }
+      return null;
+    }
+    return Navigator.push<String>(context, MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()));
+  }
+
   Future<void> _showAddSalesInvoiceDialog({Map? invoiceToEdit}) async {
     // The page can be displayed before its first async database read finishes.
     // Reload once when the user explicitly asks to add an invoice.
@@ -395,9 +406,13 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                         labelText: 'مسح الباركود أو إدخال كود المنتج',
                         prefixIcon: const Icon(Icons.qr_code_scanner, color: Colors.teal),
                         border: const OutlineInputBorder(),
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.search, color: Colors.teal),
-                          onPressed: () {
+                        suffixIcon: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              tooltip: 'بحث بالكود أو الاسم',
+                              icon: const Icon(Icons.search, color: Colors.teal),
+                              onPressed: () {
                             String codeInput = barcodeCtrl.text.trim().toLowerCase();
                             try {
                               final prod = _products.firstWhere(
@@ -411,7 +426,28 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                             } catch (_) {
                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('❌ المنتج غير موجود!')));
                             }
-                          },
+                              },
+                            ),
+                            IconButton(
+                              tooltip: 'فتح ماسح الباركود بالكاميرا',
+                              icon: const Icon(Icons.qr_code_scanner, color: Colors.blue),
+                              onPressed: () async {
+                                final scannedCode = await _scanBarcodeWithCamera();
+                                if (scannedCode == null || scannedCode.isEmpty || !context.mounted) return;
+                                barcodeCtrl.text = scannedCode;
+                                try {
+                                  final prod = _products.firstWhere((p) => (p as Product).code.toLowerCase() == scannedCode.toLowerCase()) as Product;
+                                  setDialogState(() {
+                                    selectedProduct = prod;
+                                    sellingPriceCtrl.text = prod.sellingPrice.toString();
+                                    quantityCtrl.text = '1';
+                                  });
+                                } catch (_) {
+                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('⚠️ تم قراءة الكود، لكنه غير مسجل كمنتج')));
+                                }
+                              },
+                            ),
+                          ],
                         ),
                       ),
                       onSubmitted: (value) {

@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/models.dart';
 import '../services/database_helper.dart';
+import '../services/barcode_image_service.dart';
 import '../services/image_storage_service.dart';
 import 'categories_screen.dart';
+import 'barcode_scanner_screen.dart';
 
 class ProductsScreen extends StatefulWidget {
   const ProductsScreen({super.key});
@@ -220,8 +223,33 @@ class _ProductsScreenState extends State<ProductsScreen> {
     );
   }
 
+  Future<String?> _scanBarcodeWithCamera() async {
+    if (Platform.isLinux || Platform.isWindows) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ماسح الكاميرا متاح على الهاتف فقط.')));
+      }
+      return null;
+    }
+    return Navigator.push<String>(context, MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()));
+  }
+
+  Future<String?> _readBarcodeFromImage(String path) async {
+    if (Platform.isLinux || Platform.isWindows) return null;
+    final controller = MobileScannerController(autoStart: false);
+    try {
+      final capture = await controller.analyzeImage(path);
+      final values = capture?.barcodes
+          .map((barcode) => barcode.rawValue?.trim())
+          .whereType<String>()
+          .toList() ?? <String>[];
+      return values.isEmpty ? null : values.first;
+    } finally {
+      await controller.dispose();
+    }
+  }
+
   // نافذة إضافة أو تعديل منتج
-  void _showProductDialog({Product? productToEdit}) {
+  Future<void> _showProductDialog({Product? productToEdit}) async {
     if (_categories.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('⚠️ يجب إضافة تصنيفات أولاً!')));
       return;
@@ -239,6 +267,18 @@ class _ProductsScreenState extends State<ProductsScreen> {
     String selectedStatus = isEditing ? productToEdit.status : 'متوفر';
     String? productImagePath = isEditing ? productToEdit.imagePath : null;
     String? barcodeImagePath = isEditing ? productToEdit.barcodeImagePath : null;
+
+    if (!isEditing) {
+      try {
+        barcodeImagePath = await BarcodeImageService.generateQrImage(
+          code: barcodeCtrl.text.trim(),
+          prefix: 'barcode_${barcodeCtrl.text.trim()}',
+        );
+      } catch (_) {
+        // The required save directory may not be configured yet. The image
+        // will be generated again when the user presses Save.
+      }
+    }
 
     showDialog(
       context: context,
@@ -302,31 +342,40 @@ class _ProductsScreenState extends State<ProductsScreen> {
                         onPressed: () async {
                           FilePickerResult? res = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['png', 'jpg', 'jpeg']);
                           if (res != null && res.files.single.path != null) {
-                            setDialogState(() => barcodeImagePath = res.files.single.path);
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ تم إرفاق صورة الباركود')));
+                            final selectedPath = res.files.single.path!;
+                            setDialogState(() => barcodeImagePath = selectedPath);
+                            try {
+                              final decodedCode = await _readBarcodeFromImage(selectedPath);
+                              if (decodedCode != null && decodedCode.isNotEmpty) {
+                                setDialogState(() => barcodeCtrl.text = decodedCode);
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ تم قراءة الكود وتحديث صورة الباركود')));
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('⚠️ تم اختيار الصورة، لكن تعذر قراءة الكود منها')));
+                              }
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('⚠️ تم اختيار الصورة دون قراءة الكود: $e')));
+                            }
                           }
                         },
                       ),
                       IconButton(
                         icon: const Icon(Icons.qr_code_scanner, color: Colors.blue),
                         tooltip: 'مسح الباركود',
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              title: const Text('مسح أو إدخال الباركود'),
-                              content: TextField(
-                                autofocus: true,
-                                decoration: const InputDecoration(labelText: 'امسح الباركود بالماسح الضوئي هنا...'),
-                                onSubmitted: (scannedCode) {
-                                  if (scannedCode.isNotEmpty) {
-                                    setDialogState(() => barcodeCtrl.text = scannedCode);
-                                    Navigator.pop(ctx);
-                                  }
-                                },
-                              ),
-                            ),
-                          );
+                        onPressed: () async {
+                          final scannedCode = await _scanBarcodeWithCamera();
+                          if (scannedCode != null && scannedCode.isNotEmpty) {
+                            String? generatedImage;
+                            try {
+                              generatedImage = await BarcodeImageService.generateQrImage(
+                                code: scannedCode,
+                                prefix: 'barcode_$scannedCode',
+                              );
+                            } catch (_) {}
+                            setDialogState(() {
+                              barcodeCtrl.text = scannedCode;
+                              barcodeImagePath = generatedImage;
+                            });
+                          }
                         },
                       ),
                     ],
@@ -384,10 +433,15 @@ class _ProductsScreenState extends State<ProductsScreen> {
                     sourcePath: productImagePath,
                     prefix: 'product_${barcodeCtrl.text.trim()}',
                   );
-                  permanentBarcodeImage = await ImageStorageService.copyToConfiguredDirectory(
-                    sourcePath: barcodeImagePath,
-                    prefix: 'barcode_${barcodeCtrl.text.trim()}',
-                  );
+                  permanentBarcodeImage = barcodeImagePath == null
+                      ? await BarcodeImageService.generateQrImage(
+                          code: barcodeCtrl.text.trim(),
+                          prefix: 'barcode_${barcodeCtrl.text.trim()}',
+                        )
+                      : await ImageStorageService.copyToConfiguredDirectory(
+                          sourcePath: barcodeImagePath,
+                          prefix: 'barcode_${barcodeCtrl.text.trim()}',
+                        );
                 } catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(

@@ -17,9 +17,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
   List _salesInvoices = [];
   List _expenses = [];
   
-  final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
-  
   String? _dateFilterType;
   String? _specificDate;
   String? _startDate;
@@ -55,11 +52,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
     // حساب البيانات المفلترة لتظهر داخل جدول المعاينة
     final filteredInvoices = _salesInvoices.where((inv) {
-      final userName = (inv['userName'] ?? '').toString().toLowerCase();
-      final invNumber = (inv['invoiceNumber'] ?? '').toString().toLowerCase();
-      final query = _searchQuery.toLowerCase();
-
-      bool matchesSearch = userName.contains(query) || invNumber.contains(query);
       bool matchesDate = true;
       String invDate = inv['date'] ?? '';
       
@@ -68,7 +60,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       } else if (_dateFilterType == 'range' && _startDate != null && _endDate != null) {
         matchesDate = invDate.compareTo(_startDate!) >= 0 && invDate.compareTo(_endDate!) <= 0;
       }
-      return matchesSearch && matchesDate;
+      return matchesDate;
     }).toList();
 
     final filteredExpenses = _expenses.where((exp) {
@@ -158,41 +150,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
-                    const Text('سجل الفواتير التفصيلي:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-
-                    // جدول الفواتير
-                    Table(
-                      border: TableBorder.all(color: Colors.grey.shade300),
-                      columnWidths: const {
-                        0: FlexColumnWidth(1.2),
-                        1: FlexColumnWidth(1.5),
-                        2: FlexColumnWidth(2.0),
-                        3: FlexColumnWidth(1.2),
-                      },
-                      children: [
-                        TableRow(
-                          decoration: BoxDecoration(color: Colors.teal.shade800),
-                          children: const [
-                            Padding(padding: EdgeInsets.all(6.0), child: Text('رقم الفاتورة', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
-                            Padding(padding: EdgeInsets.all(6.0), child: Text('التاريخ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
-                            Padding(padding: EdgeInsets.all(6.0), child: Text('اسم العميل', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.right)),
-                            Padding(padding: EdgeInsets.all(6.0), child: Text('الإجمالي', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
-                          ],
-                        ),
-                        ...filteredInvoices.map((inv) {
-                          return TableRow(
-                            children: [
-                              Padding(padding: EdgeInsets.all(6.0), child: Text(inv['invoiceNumber'].toString(), textAlign: TextAlign.center, style: const TextStyle(fontSize: 11))),
-                              Padding(padding: EdgeInsets.all(6.0), child: Text(inv['date'].toString(), textAlign: TextAlign.center, style: const TextStyle(fontSize: 11))),
-                              Padding(padding: EdgeInsets.all(6.0), child: Text(inv['userName'] ?? 'عميل نقدي', textAlign: TextAlign.right, style: const TextStyle(fontSize: 11))),
-                              Padding(padding: EdgeInsets.all(6.0), child: Text(inv['totalAmount'].toString(), textAlign: TextAlign.center, style: const TextStyle(fontSize: 11))),
-                            ],
-                          );
-                        }),
-                      ],
-                    ),
                     const SizedBox(height: 25),
                     const Center(child: Text('شكراً لتعاملكم معنا!', style: TextStyle(fontSize: 11, color: Colors.grey))),
                   ],
@@ -242,11 +199,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
   @override
   Widget build(BuildContext context) {
     final filteredInvoices = _salesInvoices.where((inv) {
-      final userName = (inv['userName'] ?? '').toString().toLowerCase();
-      final invNumber = (inv['invoiceNumber'] ?? '').toString().toLowerCase();
-      final query = _searchQuery.toLowerCase();
-
-      bool matchesSearch = userName.contains(query) || invNumber.contains(query);
       bool matchesDate = true;
       String invDate = inv['date'] ?? '';
       
@@ -255,7 +207,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       } else if (_dateFilterType == 'range' && _startDate != null && _endDate != null) {
         matchesDate = invDate.compareTo(_startDate!) >= 0 && invDate.compareTo(_endDate!) <= 0;
       }
-      return matchesSearch && matchesDate;
+      return matchesDate;
     }).toList();
 
     final filteredExpenses = _expenses.where((exp) {
@@ -301,21 +253,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: const InputDecoration(
-                      labelText: 'بحث برقم الفاتورة أو اسم العميل...',
-                      prefixIcon: Icon(Icons.search),
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: (val) => setState(() => _searchQuery = val),
-                  ),
-                ),
-              ],
-            ),
             const SizedBox(height: 10),
             Row(
               children: [
@@ -402,69 +339,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
               ],
             ),
             const Divider(height: 25, thickness: 2),
-
-            const Text('سجل الفواتير:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 8),
-
-            Expanded(
-              child: filteredInvoices.isEmpty
-                  ? const Center(child: Text('لا توجد بيانات مبيعات مطابقة للبحث أو الفترة'))
-                  : ListView.builder(
-                      itemCount: filteredInvoices.length,
-                      itemBuilder: (context, index) {
-                        final inv = filteredInvoices[index];
-                        List items = inv['items'] ?? [];
-                        return Card(
-                          margin: const EdgeInsets.symmetric(vertical: 4),
-                          child: ExpansionTile(
-                            title: Text('فاتورة: ${inv['invoiceNumber']} | العميل: ${inv['userName'] ?? "عميل نقدي"}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: Text('التاريخ: ${inv['date']} | الإجمالي: ${inv['totalAmount']} ل.س | المتبقي: ${inv['remainingDebt']} ل.س'),
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(12.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('تفاصيل المنتجات المباعة:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal)),
-                                    const SizedBox(height: 6),
-                                    Table(
-                                      border: TableBorder.all(color: Colors.grey.shade300),
-                                      columnWidths: const {
-                                        0: FlexColumnWidth(3),
-                                        1: FlexColumnWidth(1),
-                                        2: FlexColumnWidth(1.5),
-                                        3: FlexColumnWidth(1.5),
-                                      },
-                                      children: [
-                                        const TableRow(
-                                          decoration: BoxDecoration(color: Colors.teal),
-                                          children: [
-                                            Padding(padding: EdgeInsets.all(4), child: Text('المنتج', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                                            Padding(padding: EdgeInsets.all(4), child: Text('الكمية', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                                            Padding(padding: EdgeInsets.all(4), child: Text('السعر', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                                            Padding(padding: EdgeInsets.all(4), child: Text('الإجمالي', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                                          ],
-                                        ),
-                                        ...items.map((item) {
-                                          return TableRow(
-                                            children: [
-                                              Padding(padding: EdgeInsets.all(4), child: Text(item['productName']?.toString() ?? 'منتج')),
-                                              Padding(padding: EdgeInsets.all(4), child: Text(item['quantity'].toString())),
-                                              Padding(padding: EdgeInsets.all(4), child: Text('${item['price']}')),
-                                              Padding(padding: EdgeInsets.all(4), child: Text('${item['total']} ل.س')),
-                                            ],
-                                          );
-                                        }).toList(),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
+            const Center(
+              child: Text('يتم احتساب المبيعات والأرباح والخزنة من الفواتير المحفوظة دون عرض سجل الفواتير هنا.'),
             ),
           ],
         ),
