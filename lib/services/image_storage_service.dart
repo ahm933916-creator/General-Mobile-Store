@@ -28,7 +28,6 @@ class ImageStorageService {
       throw FileSystemException(
         'لا يمكن الكتابة في المجلد الخارجي المختار. اختر مجلدًا آخر وامنح Android صلاحية الوصول إليه.',
         directory.path,
-        error,
       );
     }
   }
@@ -48,7 +47,7 @@ class ImageStorageService {
       await directory.create(recursive: true);
       return directory;
     } catch (error) {
-      throw FileSystemException('تعذر إنشاء مجلد صور المنتج داخل المجلد الخارجي المختار.', directory.path, error);
+      throw FileSystemException('تعذر إنشاء مجلد صور المنتج داخل المجلد الخارجي المختار.', directory.path);
     }
   }
 
@@ -76,7 +75,7 @@ class ImageStorageService {
       }
       return target.path;
     } catch (error) {
-      throw FileSystemException('تعذر حفظ صورة المنتج داخل المجلد الخارجي المختار.', target.path, error);
+      throw FileSystemException('تعذر حفظ صورة المنتج داخل المجلد الخارجي المختار.', target.path);
     }
   }
 
@@ -90,7 +89,7 @@ class ImageStorageService {
       await target.writeAsBytes(bytes, flush: true);
       return target.path;
     } catch (error) {
-      throw FileSystemException('تعذر حفظ التقرير داخل المجلد الخارجي المختار.', target.path, error);
+      throw FileSystemException('تعذر حفظ التقرير داخل المجلد الخارجي المختار.', target.path);
     }
   }
 
@@ -111,7 +110,7 @@ class ImageStorageService {
         await oldDirectory.rename(newDirectory.path);
       }
     } catch (error) {
-      throw FileSystemException('تعذر إعادة تسمية مجلد صور المنتج الخارجي.', newDirectory.path, error);
+      throw FileSystemException('تعذر إعادة تسمية مجلد صور المنتج الخارجي.', newDirectory.path);
     }
   }
 
