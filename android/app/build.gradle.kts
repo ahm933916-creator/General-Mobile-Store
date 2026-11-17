@@ -1,5 +1,5 @@
 plugins {
-    id("com.android.application") version "8.11.1"
+    id("com.android.application")
     id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
 }
