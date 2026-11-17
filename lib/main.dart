@@ -18,6 +18,9 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final view = WidgetsBinding.instance.platformDispatcher.views.first;
+    final logicalWidth = view.physicalSize.width / view.devicePixelRatio;
+    final isPhone = logicalWidth < 600;
     final baseTextTheme = ThemeData.light().textTheme;
     return MaterialApp(
       title: 'إدارة المبيعات والمنتجات',
@@ -27,19 +30,19 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         visualDensity: VisualDensity.adaptivePlatformDensity,
         textTheme: baseTextTheme.copyWith(
-          bodyLarge: baseTextTheme.bodyLarge?.copyWith(fontSize: 17),
-          bodyMedium: baseTextTheme.bodyMedium?.copyWith(fontSize: 16),
-          bodySmall: baseTextTheme.bodySmall?.copyWith(fontSize: 14),
-          labelLarge: baseTextTheme.labelLarge?.copyWith(fontSize: 15),
-          titleMedium: baseTextTheme.titleMedium?.copyWith(fontSize: 17),
+          bodyLarge: baseTextTheme.bodyLarge?.copyWith(fontSize: isPhone ? 15 : 17),
+          bodyMedium: baseTextTheme.bodyMedium?.copyWith(fontSize: isPhone ? 14 : 16),
+          bodySmall: baseTextTheme.bodySmall?.copyWith(fontSize: isPhone ? 12 : 14),
+          labelLarge: baseTextTheme.labelLarge?.copyWith(fontSize: isPhone ? 13 : 15),
+          titleMedium: baseTextTheme.titleMedium?.copyWith(fontSize: isPhone ? 15 : 17),
         ),
-        inputDecorationTheme: const InputDecorationTheme(
+        inputDecorationTheme: InputDecorationTheme(
           isDense: false,
-          contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 15),
-          labelStyle: TextStyle(fontSize: 15),
+          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: isPhone ? 11 : 15),
+          labelStyle: TextStyle(fontSize: isPhone ? 13 : 15),
         ),
-        dropdownMenuTheme: const DropdownMenuThemeData(
-          textStyle: TextStyle(fontSize: 15),
+        dropdownMenuTheme: DropdownMenuThemeData(
+          textStyle: TextStyle(fontSize: isPhone ? 13 : 15),
         ),
       ),
       home: const HomeScreen(),

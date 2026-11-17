@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// التخزين الخارجي الوحيد للصور والتقارير.
@@ -8,7 +9,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ImageStorageService {
   static const _settingKey = 'save_directory';
 
+  static Future<void> ensureExternalStorageAccess() async {
+    if (!Platform.isAndroid) return;
+    final current = await Permission.manageExternalStorage.status;
+    if (current.isGranted) return;
+    final result = await Permission.manageExternalStorage.request();
+    if (!result.isGranted) {
+      throw const FileSystemException(
+        'يجب السماح للتطبيق بإدارة الملفات حتى يتم حفظ الصور خارج مجلد التطبيق. افتح إعدادات Android وفعّل السماح بالوصول إلى الملفات.',
+      );
+    }
+  }
+
   static Future<Directory> configuredDirectory() async {
+    await ensureExternalStorageAccess();
     final prefs = await SharedPreferences.getInstance();
     final configuredPath = prefs.getString(_settingKey)?.trim();
     if (configuredPath == null || configuredPath.isEmpty) {
