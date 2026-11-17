@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/image_storage_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -13,7 +13,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _appNameController = TextEditingController(text: 'شركة إدارة المخزون والمبيعات');
-  String _savedDirectory = '/home';
+  String _savedDirectory = '';
 
   @override
   void initState() {
@@ -24,16 +24,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // تحميل الإعدادات المحفوظة مسبقاً
   void _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    final appDirectory = (await getApplicationDocumentsDirectory()).path;
     final storedDirectory = prefs.getString('save_directory');
-    final defaultDirectory = storedDirectory != null && storedDirectory.trim().isNotEmpty && !(Platform.isAndroid && storedDirectory.startsWith('/home/'))
+    final isInternalAndroidPath = Platform.isAndroid &&
+        (storedDirectory?.contains('/data/user/0/') == true || storedDirectory?.contains('/data/data/') == true);
+    final selectedDirectory = storedDirectory != null && storedDirectory.trim().isNotEmpty && !isInternalAndroidPath
         ? storedDirectory
-        : appDirectory;
+        : '';
     setState(() {
       _appNameController.text = prefs.getString('app_title') ?? 'شركة إدارة المخزون والمبيعات';
-      _savedDirectory = defaultDirectory;
+      _savedDirectory = selectedDirectory;
     });
-    if (storedDirectory != defaultDirectory) await prefs.setString('save_directory', defaultDirectory);
+    if (storedDirectory != selectedDirectory) await prefs.setString('save_directory', selectedDirectory);
   }
 
   // حفظ الإعدادات
@@ -41,6 +42,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('app_title', _appNameController.text.trim());
     await prefs.setString('save_directory', _savedDirectory);
+
+    try {
+      await ImageStorageService.configuredDirectory();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ لم يتم حفظ الإعدادات: $e'), backgroundColor: Colors.red),
+        );
+      }
+      return;
+    }
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -94,15 +106,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     const Text('مجلد حفظ لقطات الشاشة والتقارير', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.teal)),
                     const SizedBox(height: 10),
-                    Row(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Expanded(
-                          child: Text(
-                            'المجلد الحالي: $_savedDirectory',
-                            style: const TextStyle(fontSize: 13, color: Colors.black87),
-                            overflow: TextOverflow.ellipsis,
+                        Text(
+                          _savedDirectory.isEmpty
+                              ? 'لم يتم اختيار مجلد خارجي بعد'
+                              : 'المجلد الحالي: $_savedDirectory',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: _savedDirectory.isEmpty ? Colors.red : Colors.black87,
                           ),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
                         ),
+                        const SizedBox(height: 10),
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(backgroundColor: Colors.teal.shade50, foregroundColor: Colors.teal.shade800),
                           icon: const Icon(Icons.folder_open),
@@ -110,9 +128,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           onPressed: () async {
                             String? selectedDir = await FilePicker.platform.getDirectoryPath();
                             if (selectedDir != null) {
+                              final prefs = await SharedPreferences.getInstance();
+                              await prefs.setString('save_directory', selectedDir);
                               setState(() {
                                 _savedDirectory = selectedDir;
                               });
+                              try {
+                                await ImageStorageService.configuredDirectory();
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ تم اختيار مجلد خارجي قابل للكتابة'), backgroundColor: Colors.green));
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('❌ لا يمكن الكتابة في هذا المجلد: $e'), backgroundColor: Colors.red));
+                                }
+                              }
                             }
                           },
                         ),

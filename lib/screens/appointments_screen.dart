@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/models.dart';
 import '../services/database_helper.dart';
+import '../services/image_storage_service.dart';
 import 'barcode_scanner_screen.dart';
 
 class AppointmentsScreen extends StatefulWidget {
@@ -191,10 +192,10 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                 ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
                 Uint8List pngBytes = byteData!.buffer.asUint8List();
 
-                String targetDir = prefs.getString('save_directory') ?? '/home/${Platform.environment['USER']}/Downloads';
-                String savePath = '$targetDir/appointments_table_report_${DateTime.now().millisecondsSinceEpoch}.png';
-
-                await File(savePath).writeAsBytes(pngBytes);
+                final savePath = await ImageStorageService.saveBytes(
+                  bytes: pngBytes,
+                  fileName: 'appointments_table_report_${DateTime.now().millisecondsSinceEpoch}.png',
+                );
 
                 if (context.mounted) {
                   Navigator.pop(context);
@@ -203,7 +204,11 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                   );
                 }
               } catch (e) {
-                print("خطأ أثناء الحفظ: $e");
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('❌ تعذر الحفظ في المجلد الخارجي المختار: $e'), backgroundColor: Colors.red),
+                  );
+                }
               }
             },
           ),
@@ -307,11 +312,10 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                 ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
                 Uint8List pngBytes = byteData!.buffer.asUint8List();
 
-                final prefs = await SharedPreferences.getInstance();
-                String targetDir = prefs.getString('save_directory') ?? '/home/${Platform.environment['USER']}/Downloads';
-                String savePath = '$targetDir/invoice_${invoice['invoiceNumber']}.png';
-
-                await File(savePath).writeAsBytes(pngBytes);
+                final savePath = await ImageStorageService.saveBytes(
+                  bytes: pngBytes,
+                  fileName: 'invoice_${invoice['invoiceNumber']}.png',
+                );
                 if (context.mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('✅ تم حفظ الفاتورة في: $savePath'), backgroundColor: Colors.green));

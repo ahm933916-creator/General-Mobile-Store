@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/models.dart';
 import '../services/database_helper.dart';
+import '../services/image_storage_service.dart';
 
 class UsersScreen extends StatefulWidget {
   const UsersScreen({super.key});
@@ -138,10 +139,10 @@ class _UsersScreenState extends State<UsersScreen> {
                 ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
                 Uint8List pngBytes = byteData!.buffer.asUint8List();
 
-                String targetDir = prefs.getString('save_directory') ?? '/home/${Platform.environment['USER']}/Downloads';
-                String savePath = '$targetDir/users_table_report_${DateTime.now().millisecondsSinceEpoch}.png';
-
-                await File(savePath).writeAsBytes(pngBytes);
+                final savePath = await ImageStorageService.saveBytes(
+                  bytes: pngBytes,
+                  fileName: 'users_table_report_${DateTime.now().millisecondsSinceEpoch}.png',
+                );
 
                 if (context.mounted) {
                   Navigator.pop(context);

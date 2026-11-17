@@ -180,13 +180,10 @@ class _ProductsScreenState extends State<ProductsScreen> {
                 ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
                 Uint8List pngBytes = byteData!.buffer.asUint8List();
 
-                final prefs = await SharedPreferences.getInstance();
-                final configuredDirectory = prefs.getString('save_directory');
-                final directory = Directory(configuredDirectory ?? '/home/${Platform.environment['USER']}/Downloads');
-                await directory.create(recursive: true);
-                String savePath = '${directory.path}/products_table_report_${DateTime.now().millisecondsSinceEpoch}.png';
-
-                await File(savePath).writeAsBytes(pngBytes);
+                final savePath = await ImageStorageService.saveBytes(
+                  bytes: pngBytes,
+                  fileName: 'products_table_report_${DateTime.now().millisecondsSinceEpoch}.png',
+                );
 
                 if (context.mounted) {
                   Navigator.pop(context);
@@ -195,7 +192,11 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   );
                 }
               } catch (e) {
-                print("خطأ في الحفظ: $e");
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('❌ تعذر الحفظ في المجلد الخارجي المختار: $e'), backgroundColor: Colors.red),
+                  );
+                }
               }
             },
           ),
@@ -613,58 +614,62 @@ class _ProductsScreenState extends State<ProductsScreen> {
                           margin: const EdgeInsets.symmetric(vertical: 3),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                InkWell(
-                                  onTap: () {
-                                    if (img != null && File(img).existsSync()) _showImageZoomDialog(img);
-                                  },
-                                  child: Container(
-                                    width: 42,
-                                    height: 42,
-                                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.grey.shade300)),
-                                    child: img != null && File(img).existsSync()
-                                        ? ClipRRect(borderRadius: BorderRadius.circular(6), child: Image.file(File(img), fit: BoxFit.cover))
-                                        : const Icon(Icons.inventory_2, color: Colors.teal, size: 22),
-                                  ),
+                                Row(
+                                  children: [
+                                    InkWell(
+                                      onTap: () {
+                                        if (img != null && File(img).existsSync()) _showImageZoomDialog(img);
+                                      },
+                                      child: Container(
+                                        width: 42,
+                                        height: 42,
+                                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.grey.shade300)),
+                                        child: img != null && File(img).existsSync()
+                                            ? ClipRRect(borderRadius: BorderRadius.circular(6), child: Image.file(File(img), fit: BoxFit.cover))
+                                            : const Icon(Icons.inventory_2, color: Colors.teal, size: 22),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    InkWell(
+                                      onTap: () => _showBarcodePreviewDialog(name, code, barcodeImg),
+                                      child: Container(
+                                        width: 42,
+                                        height: 42,
+                                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.teal.shade300), color: Colors.teal.shade50),
+                                        child: barcodeImg != null && File(barcodeImg).existsSync()
+                                            ? ClipRRect(borderRadius: BorderRadius.circular(6), child: Image.file(File(barcodeImg), fit: BoxFit.cover))
+                                            : const Icon(Icons.qr_code, color: Colors.teal, size: 22),
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    IconButton(
+                                      visualDensity: VisualDensity.compact,
+                                      tooltip: 'تعديل',
+                                      icon: const Icon(Icons.edit, color: Colors.blue, size: 21),
+                                      onPressed: () => _showProductDialog(productToEdit: Product.fromMap(Map<String, dynamic>.from(prodMap))),
+                                    ),
+                                    IconButton(
+                                      visualDensity: VisualDensity.compact,
+                                      tooltip: 'حذف',
+                                      icon: const Icon(Icons.delete, color: Colors.red, size: 21),
+                                      onPressed: () async {
+                                        await DatabaseHelper.instance.deleteProduct(prodMap['id']);
+                                        _loadData();
+                                      },
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 6),
-                                InkWell(
-                                  onTap: () => _showBarcodePreviewDialog(name, code, barcodeImg),
-                                  child: Container(
-                                    width: 42,
-                                    height: 42,
-                                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.teal.shade300), color: Colors.teal.shade50),
-                                    child: barcodeImg != null && File(barcodeImg).existsSync()
-                                        ? ClipRRect(borderRadius: BorderRadius.circular(6), child: Image.file(File(barcodeImg), fit: BoxFit.cover))
-                                        : const Icon(Icons.qr_code, color: Colors.teal, size: 22),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    '$name  •  كود: $code  •  التصنيف: ${prodMap['categoryName'] ?? "بدون"}  •  الكمية: ${prodMap['quantity']}  •  سعر المبيع: ${prodMap['sellingPrice']} ل.س  •  الإيجار: ${prodMap['isForRent'] == 1 ? (prodMap['rentalStatus'] ?? "متاح") : "غير مفعل"}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    textDirection: TextDirection.rtl,
-                                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                                  ),
-                                ),
-                                IconButton(
-                                  visualDensity: VisualDensity.compact,
-                                  tooltip: 'تعديل',
-                                  icon: const Icon(Icons.edit, color: Colors.blue, size: 21),
-                                  onPressed: () => _showProductDialog(productToEdit: Product.fromMap(Map<String, dynamic>.from(prodMap))),
-                                ),
-                                IconButton(
-                                  visualDensity: VisualDensity.compact,
-                                  tooltip: 'حذف',
-                                  icon: const Icon(Icons.delete, color: Colors.red, size: 21),
-                                  onPressed: () async {
-                                    await DatabaseHelper.instance.deleteProduct(prodMap['id']);
-                                    _loadData();
-                                  },
+                                const SizedBox(height: 4),
+                                Text(
+                                  '$name\nكود: $code | التصنيف: ${prodMap['categoryName'] ?? "بدون"}\nالكمية: ${prodMap['quantity']} | سعر المبيع: ${prodMap['sellingPrice']} ل.س | الإيجار: ${prodMap['isForRent'] == 1 ? (prodMap['rentalStatus'] ?? "متاح") : "غير مفعل"}',
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
+                                  textDirection: TextDirection.rtl,
+                                  textAlign: TextAlign.right,
+                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, height: 1.25),
                                 ),
                               ],
                             ),
