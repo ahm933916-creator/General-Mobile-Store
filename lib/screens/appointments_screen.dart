@@ -89,9 +89,12 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       builder: (context) => AlertDialog(
         title: const Text('معاينة تقرير المبيعات والفواتير كجدول للطباعة والحفظ', textDirection: TextDirection.rtl, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
         content: SizedBox(
-          width: 750,
+          width: MediaQuery.sizeOf(context).width * 0.94,
+          height: MediaQuery.sizeOf(context).height * 0.72,
           child: SingleChildScrollView(
-            child: RepaintBoundary(
+            child: Directionality(
+              textDirection: TextDirection.rtl,
+              child: RepaintBoundary(
               key: _tablePreviewKey,
               child: Container(
                 color: Colors.white,
@@ -101,8 +104,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // ترويسة التقرير الرسمية
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      runSpacing: 4,
                       children: [
                         Text('$appTitle 📦', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.teal)),
                         Text('التاريخ: ${DateTime.now().toString().split(' ')[0]}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
@@ -123,7 +127,11 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                     const SizedBox(height: 8),
 
                     // جدول منظم واحترافي
-                    Table(
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: SizedBox(
+                        width: 620,
+                        child: Table(
                       border: TableBorder.all(color: Colors.grey.shade300),
                       columnWidths: const {
                         0: FlexColumnWidth(1.2),
@@ -155,6 +163,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                           );
                         }),
                       ],
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 25),
                     const Center(child: Text('شكراً لتعاملكم معنا!', style: TextStyle(fontSize: 11, color: Colors.grey))),
@@ -163,6 +173,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
               ),
             ),
           ),
+        ),
         ),
         actions: [
           // زر الحفظ التلقائي في المجلد المحدد بالإعدادات كصورة
@@ -212,8 +223,12 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       builder: (context) => AlertDialog(
         title: const Text('معاينة فاتورة المبيعات للطباعة', textAlign: TextAlign.center),
         content: SizedBox(
-          width: 600,
-          child: RepaintBoundary(
+          width: MediaQuery.sizeOf(context).width * 0.94,
+          height: MediaQuery.sizeOf(context).height * 0.72,
+          child: SingleChildScrollView(
+            child: Directionality(
+              textDirection: TextDirection.rtl,
+              child: RepaintBoundary(
             key: printKey,
             child: Container(
               color: Colors.white,
@@ -230,7 +245,11 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                   const Divider(thickness: 2),
                   const Text('المنتجات المباعة:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 5),
-                  Table(
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: 620,
+                      child: Table(
                     border: TableBorder.all(color: Colors.grey.shade300),
                     columnWidths: const {
                       0: FlexColumnWidth(3),
@@ -259,6 +278,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                         );
                       }).toList(),
                     ],
+                      ),
+                    ),
                   ),
                   const Divider(thickness: 2),
                   Text('إجمالي الفاتورة: ${invoice['totalAmount']} ل.س', style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -267,6 +288,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                   const Divider(),
                   const Center(child: Text('شكراً لتعاملكم معنا!', style: TextStyle(fontSize: 12, color: Colors.grey))),
                 ],
+              ),
+            ),
               ),
             ),
           ),
@@ -665,15 +688,28 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                                 final item = invoiceItems[index];
                                 return Card(
                                   margin: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
-                                  child: ListTile(
-                                    dense: true,
-                                    title: Text('${index + 1}. ${item['transactionType'] == 'rent' ? 'إيجار' : 'بيع'}: ${item['productName']} | السعر: ${item['price']} | الكمية: ${item['quantity']}${item['transactionType'] == 'rent' ? ' | من ${item['rentalStartDate']} إلى ${item['rentalEndDate']}' : ''}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                                    trailing: Row(
-                                      mainAxisSize: MainAxisSize.min,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.center,
                                       children: [
-                                        Text('الإجمالي: ${item['total']} ل.س', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.teal)),
-                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            '${index + 1}. ${item['transactionType'] == 'rent' ? 'إيجار' : 'بيع'}: ${item['productName']}\nالسعر: ${item['price']} | الكمية: ${item['quantity']}${item['transactionType'] == 'rent' ? '\nمن ${item['rentalStartDate']} إلى ${item['rentalEndDate']}' : ''}',
+                                            maxLines: 3,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        SizedBox(
+                                          width: 72,
+                                          child: Text('الإجمالي:\n${item['total']} ل.س', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.teal, fontSize: 11)),
+                                        ),
                                         IconButton(
+                                          visualDensity: VisualDensity.compact,
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                                           icon: const Icon(Icons.delete, color: Colors.red, size: 20),
                                           onPressed: () {
                                             setDialogState(() {

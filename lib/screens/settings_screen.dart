@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -23,10 +24,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // تحميل الإعدادات المحفوظة مسبقاً
   void _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
+    final appDirectory = (await getApplicationDocumentsDirectory()).path;
+    final storedDirectory = prefs.getString('save_directory');
+    final defaultDirectory = storedDirectory != null && storedDirectory.trim().isNotEmpty && !(Platform.isAndroid && storedDirectory.startsWith('/home/'))
+        ? storedDirectory
+        : appDirectory;
     setState(() {
       _appNameController.text = prefs.getString('app_title') ?? 'شركة إدارة المخزون والمبيعات';
-      _savedDirectory = prefs.getString('save_directory') ?? '/home/${Platform.environment['USER']}/Downloads';
+      _savedDirectory = defaultDirectory;
     });
+    if (storedDirectory != defaultDirectory) await prefs.setString('save_directory', defaultDirectory);
   }
 
   // حفظ الإعدادات

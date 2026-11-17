@@ -85,7 +85,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
       builder: (context) => AlertDialog(
         title: const Text('معاينة التقرير المالي كجدول للطباعة والحفظ', textDirection: TextDirection.rtl, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
         content: SizedBox(
-          width: 750,
+          width: MediaQuery.sizeOf(context).width * 0.94,
+          height: MediaQuery.sizeOf(context).height * 0.72,
           child: SingleChildScrollView(
             child: RepaintBoundary(
               key: _tablePreviewKey,
@@ -97,8 +98,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // ترويسة التقرير الرسمية
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      runSpacing: 4,
                       children: [
                         Text('$appTitle 📦', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.teal)),
                         Text('التاريخ: ${DateTime.now().toString().split(' ')[0]}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
@@ -119,7 +121,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     const SizedBox(height: 8),
 
                     // جدول الملخص المالي
-                    Table(
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: SizedBox(
+                        width: 620,
+                        child: Table(
                       border: TableBorder.all(color: Colors.grey.shade300),
                       columnWidths: const {
                         0: FlexColumnWidth(1),
@@ -149,6 +155,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           ],
                         ),
                       ],
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 25),
                     const Center(child: Text('شكراً لتعاملكم معنا!', style: TextStyle(fontSize: 11, color: Colors.grey))),

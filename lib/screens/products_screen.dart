@@ -54,8 +54,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         content: SizedBox(
-          width: 400,
-          height: 400,
+          width: MediaQuery.sizeOf(context).width * 0.82,
+          height: MediaQuery.sizeOf(context).height * 0.5,
           child: InteractiveViewer(
             child: Image.file(File(imagePath), fit: BoxFit.contain),
           ),
@@ -74,9 +74,12 @@ class _ProductsScreenState extends State<ProductsScreen> {
       builder: (context) => AlertDialog(
         title: const Text('معاينة تقرير المنتجات كجدول للطباعة والحفظ', textDirection: TextDirection.rtl, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
         content: SizedBox(
-          width: 700,
+          width: MediaQuery.sizeOf(context).width * 0.94,
+          height: MediaQuery.sizeOf(context).height * 0.72,
           child: SingleChildScrollView(
-            child: RepaintBoundary(
+            child: Directionality(
+              textDirection: TextDirection.rtl,
+              child: RepaintBoundary(
               key: _tablePreviewKey,
               child: Container(
                 color: Colors.white,
@@ -86,8 +89,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // ترويسة التقرير الرسمية مثل الفاتورة
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      runSpacing: 4,
                       children: [
                         const Text('شركة إدارة المخزون والمبيعات 📦', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.teal)),
                         Text('التاريخ: ${DateTime.now().toString().split(' ')[0]}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
@@ -98,7 +102,11 @@ class _ProductsScreenState extends State<ProductsScreen> {
                     const SizedBox(height: 10),
                     
                     // جدول منظم واحترافي تماماً مثل الفاتورة
-                    Table(
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: SizedBox(
+                        width: 620,
+                        child: Table(
                       border: TableBorder.all(color: Colors.grey.shade300),
                       columnWidths: const {
                         0: FlexColumnWidth(1.0),
@@ -144,6 +152,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
                           );
                         }),
                       ],
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 25),
                     const Center(child: Text('شكراً لتعاملكم معنا!', style: TextStyle(fontSize: 11, color: Colors.grey))),
@@ -152,6 +162,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
               ),
             ),
           ),
+        ),
         ),
         actions: [
           // زر حفظ الجدول كصورة تلقائياً بنفس مبدأ الفاتورة
@@ -472,19 +483,26 @@ class _ProductsScreenState extends State<ProductsScreen> {
                 String? permanentProductImage;
                 String? permanentBarcodeImage;
                 try {
-                  permanentProductImage = await ImageStorageService.copyToConfiguredDirectory(
+                  permanentProductImage = await ImageStorageService.copyProductAsset(
                     sourcePath: productImagePath,
-                    prefix: 'product_${barcodeCtrl.text.trim()}',
+                    productName: nameCtrl.text.trim(),
+                    suffix: '',
                   );
-                  permanentBarcodeImage = barcodeImagePath == null
-                      ? await BarcodeImageService.generateQrImage(
-                          code: barcodeCtrl.text.trim(),
-                          prefix: 'barcode_${barcodeCtrl.text.trim()}',
-                        )
-                      : await ImageStorageService.copyToConfiguredDirectory(
-                          sourcePath: barcodeImagePath,
-                          prefix: 'barcode_${barcodeCtrl.text.trim()}',
-                        );
+                  final barcodeSource = barcodeImagePath ?? await BarcodeImageService.generateQrImage(
+                    code: barcodeCtrl.text.trim(),
+                    prefix: 'barcode_${barcodeCtrl.text.trim()}',
+                  );
+                  permanentBarcodeImage = await ImageStorageService.copyProductAsset(
+                    sourcePath: barcodeSource,
+                    productName: nameCtrl.text.trim(),
+                    suffix: '_barcode',
+                  );
+                  if (isEditing && productToEdit.name.trim() != nameCtrl.text.trim()) {
+                    await ImageStorageService.renameProductDirectory(
+                      oldName: productToEdit.name,
+                      newName: nameCtrl.text.trim(),
+                    );
+                  }
                 } catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(

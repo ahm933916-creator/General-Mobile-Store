@@ -72,7 +72,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       builder: (context) => AlertDialog(
         title: const Text('معاينة تقرير المصروفات كجدول للطباعة والحفظ', textDirection: TextDirection.rtl, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
         content: SizedBox(
-          width: 700,
+          width: MediaQuery.sizeOf(context).width * 0.94,
+          height: MediaQuery.sizeOf(context).height * 0.72,
           child: SingleChildScrollView(
             child: RepaintBoundary(
               key: _tablePreviewKey,
@@ -84,8 +85,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // ترويسة التقرير الرسمية
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      runSpacing: 4,
                       children: [
                         Text('$appTitle 📦', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.teal)),
                         Text('التاريخ: ${DateTime.now().toString().split(' ')[0]}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
@@ -106,7 +108,11 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     const SizedBox(height: 8),
 
                     // جدول منظم واحترافي
-                    Table(
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: SizedBox(
+                        width: 620,
+                        child: Table(
                       border: TableBorder.all(color: Colors.grey.shade300),
                       columnWidths: const {
                         0: FlexColumnWidth(2.0),
@@ -132,8 +138,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                           );
                         }),
                       ],
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 15),
+                    const SizedBox(height: 25),
                     Text('إجمالي المصروفات: $totalExpenses ل.س', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.red)),
                     const SizedBox(height: 20),
                     const Center(child: Text('شكراً لتعاملكم معنا!', style: TextStyle(fontSize: 11, color: Colors.grey))),
