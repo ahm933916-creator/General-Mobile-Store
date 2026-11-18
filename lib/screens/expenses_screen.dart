@@ -90,7 +90,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                       alignment: WrapAlignment.spaceBetween,
                       runSpacing: 4,
                       children: [
-                        Text('$appTitle 📦', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.teal)),
+                        Text('$appTitle 📦', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF9C3FC1))),
                         Text('التاريخ: ${DateTime.now().toString().split(' ')[0]}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                       ],
                     ),
@@ -101,7 +101,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         padding: const EdgeInsets.only(bottom: 10),
                         child: Text(
                           _dateFilterType == 'specific' ? '📅 فترة التقرير ليوم: $_specificDate' : '📅 فترة التقرير: من $_startDate إلى $_endDate',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.teal),
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF9C3FC1)),
                         ),
                       ),
 
@@ -122,7 +122,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                       },
                       children: [
                         TableRow(
-                          decoration: BoxDecoration(color: Colors.teal.shade700),
+                          decoration: BoxDecoration(color: const Color(0xFF7B2FA0)),
                           children: const [
                             Padding(padding: EdgeInsets.all(8.0), child: Text('نوع المصروف', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
                             Padding(padding: EdgeInsets.all(8.0), child: Text('التاريخ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
@@ -155,7 +155,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         actions: [
           // زر الحفظ التلقائي في المجلد المحدد بالإعدادات كصورة
           ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9C3FC1), foregroundColor: Colors.white),
             icon: const Icon(Icons.save_alt),
             label: const Text('حفظ جدول المصروفات كصورة'),
             onPressed: () async {
@@ -307,7 +307,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('إدارة المصروفات'),
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color(0xFF9C3FC1),
         actions: [
           // زر معاينة الجدول المنظم والمطابق لشاشة المنتجات
           TextButton.icon(
@@ -328,7 +328,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddEditExpenseDialog(),
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color(0xFF9C3FC1),
         child: const Icon(Icons.add),
       ),
       body: SingleChildScrollView(
@@ -406,15 +406,15 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 padding: const EdgeInsets.all(6),
                 margin: const EdgeInsets.only(top: 4),
                 decoration: BoxDecoration(
-                  color: Colors.teal[50],
+                  color: const Color(0xFF2D465B),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: Colors.teal.shade200),
+                  border: Border.all(color: const Color(0xFF617C93)),
                 ),
                 child: Text(
                   _dateFilterType == 'specific'
                       ? '📅 التاريخ المختار: $_specificDate'
                       : '📅 الفترة المختارة: من $_startDate إلى $_endDate',
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.teal),
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: const Color(0xFF9C3FC1)),
                   textAlign: TextAlign.right,
                 ),
               ),

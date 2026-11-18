@@ -35,7 +35,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('مسح الباركود'),
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color(0xFF9C3FC1),
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -54,7 +54,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
               width: 280,
               height: 160,
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.tealAccent, width: 3),
+                border: Border.all(color: const Color(0xFFF0C744), width: 3),
                 borderRadius: BorderRadius.circular(16),
               ),
             ),

@@ -93,7 +93,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       alignment: WrapAlignment.spaceBetween,
                       runSpacing: 4,
                       children: [
-                        const Text('شركة إدارة المخزون والمبيعات 📦', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.teal)),
+                        const Text('شركة إدارة المخزون والمبيعات 📦', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF9C3FC1))),
                         Text('التاريخ: ${DateTime.now().toString().split(' ')[0]}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                       ],
                     ),
@@ -118,7 +118,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       children: [
                         // ترويسة الجدول
                         TableRow(
-                          decoration: BoxDecoration(color: Colors.teal.shade700),
+                          decoration: BoxDecoration(color: const Color(0xFF7B2FA0)),
                           children: const [
                             Padding(padding: EdgeInsets.all(8.0), child: Text('الصورة', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
                             Padding(padding: EdgeInsets.all(8.0), child: Text('اسم المنتج', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
@@ -140,7 +140,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                     height: 32,
                                     child: img != null && File(img).existsSync()
                                         ? ClipRRect(borderRadius: BorderRadius.circular(4), child: Image.file(File(img), fit: BoxFit.cover))
-                                        : const Icon(Icons.inventory_2, size: 20, color: Colors.teal),
+                                        : const Icon(Icons.inventory_2, size: 20, color: const Color(0xFF9C3FC1)),
                                   ),
                                 ),
                               ),
@@ -167,7 +167,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
         actions: [
           // زر حفظ الجدول كصورة تلقائياً بنفس مبدأ الفاتورة
           ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9C3FC1), foregroundColor: Colors.white),
             icon: const Icon(Icons.save_alt),
             label: const Text('حفظ / طباعة الجدول كصورة'),
             onPressed: () async {
@@ -214,7 +214,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(productName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.teal), textAlign: TextAlign.center),
+            Text(productName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF9C3FC1)), textAlign: TextAlign.center),
             const SizedBox(height: 12),
             Container(
               width: 280,
@@ -320,7 +320,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.teal[50], foregroundColor: Colors.teal[800]),
+                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2D465B), foregroundColor: const Color(0xFF9C3FC1)[800]),
                           icon: const Icon(Icons.folder_open, size: 16),
                           label: const Text('اختيار صورة المنتج', style: TextStyle(fontSize: 11)),
                           onPressed: () async {
@@ -340,10 +340,10 @@ class _ProductsScreenState extends State<ProductsScreen> {
                         width: 50,
                         height: 50,
                         margin: const EdgeInsets.only(left: 6),
-                        decoration: BoxDecoration(border: Border.all(color: Colors.teal), borderRadius: BorderRadius.circular(6), color: Colors.white),
+                        decoration: BoxDecoration(border: Border.all(color: const Color(0xFF9C3FC1)), borderRadius: BorderRadius.circular(6), color: Colors.white),
                         child: barcodeImagePath != null && File(barcodeImagePath!).existsSync()
                             ? Image.file(File(barcodeImagePath!), fit: BoxFit.cover)
-                            : const Icon(Icons.qr_code, color: Colors.teal, size: 28),
+                            : const Icon(Icons.qr_code, color: const Color(0xFF9C3FC1), size: 28),
                       ),
                       Expanded(
                         child: TextField(
@@ -353,7 +353,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       ),
                       const SizedBox(width: 4),
                       IconButton(
-                        icon: const Icon(Icons.folder_open, color: Colors.teal),
+                        icon: const Icon(Icons.folder_open, color: const Color(0xFF9C3FC1)),
                         tooltip: 'تحميل باركود من الملفات',
                         onPressed: () async {
                           FilePickerResult? res = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['png', 'jpg', 'jpeg']);
@@ -412,7 +412,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                     subtitle: const Text('عند إلغاء التفعيل لا يمكن تعديل الكمية والحالة وأسعار الشراء والمبيع'),
                     value: isForSale,
                     onChanged: (value) => setDialogState(() => isForSale = value ?? false),
-                    activeColor: Colors.teal,
+                    activeColor: const Color(0xFF9C3FC1),
                   ),
                   Row(
                     children: [
@@ -441,7 +441,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                     title: const Text('المنتج للإيجار'),
                     value: isForRent,
                     onChanged: (value) => setDialogState(() => isForRent = value ?? false),
-                    activeColor: Colors.teal,
+                    activeColor: const Color(0xFF9C3FC1),
                   ),
                   if (isForRent)
                     Column(
@@ -470,7 +470,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9C3FC1), foregroundColor: Colors.white),
               onPressed: () async {
                 if (barcodeCtrl.text.isEmpty || nameCtrl.text.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('⚠️ يرجى إدخال الكود والاسم')));
@@ -559,7 +559,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('إدارة المنتجات والمخزون'),
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color(0xFF9C3FC1),
         actions: [
           // زر فتح معاينة جدول التقرير المنظم تماماً مثل الفاتورة
           TextButton.icon(
@@ -585,7 +585,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showProductDialog(),
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color(0xFF9C3FC1),
         child: const Icon(Icons.add),
       ),
       body: Padding(
@@ -629,7 +629,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                         decoration: BoxDecoration(borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.grey.shade300)),
                                         child: img != null && File(img).existsSync()
                                             ? ClipRRect(borderRadius: BorderRadius.circular(6), child: Image.file(File(img), fit: BoxFit.cover))
-                                            : const Icon(Icons.inventory_2, color: Colors.teal, size: 22),
+                                            : const Icon(Icons.inventory_2, color: const Color(0xFF9C3FC1), size: 22),
                                       ),
                                     ),
                                     const SizedBox(width: 6),
@@ -638,10 +638,10 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                       child: Container(
                                         width: 42,
                                         height: 42,
-                                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.teal.shade300), color: Colors.teal.shade50),
+                                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(6), border: Border.all(color: const Color(0xFF617C93)), color: const Color(0xFF2D465B)),
                                         child: barcodeImg != null && File(barcodeImg).existsSync()
                                             ? ClipRRect(borderRadius: BorderRadius.circular(6), child: Image.file(File(barcodeImg), fit: BoxFit.cover))
-                                            : const Icon(Icons.qr_code, color: Colors.teal, size: 22),
+                                            : const Icon(Icons.qr_code, color: const Color(0xFF9C3FC1), size: 22),
                                       ),
                                     ),
                                     const Spacer(),

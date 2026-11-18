@@ -53,7 +53,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9C3FC1), foregroundColor: Colors.white),
             onPressed: () async {
               if (nameCtrl.text.isNotEmpty) {
                 final category = Category(
@@ -84,11 +84,11 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('إدارة التصنيفات'),
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color(0xFF9C3FC1),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showCategoryDialog(),
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color(0xFF9C3FC1),
         child: const Icon(Icons.add),
       ),
       body: Padding(

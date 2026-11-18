@@ -37,8 +37,9 @@ class _HomeScreenState extends State<HomeScreen> {
         textDirection: TextDirection.rtl,
         child: BottomNavigationBar(
           currentIndex: _selectedIndex,
-          selectedItemColor: Colors.teal,
-          unselectedItemColor: Colors.grey,
+          backgroundColor: const Color(0xFF20394C),
+          selectedItemColor: const Color(0xFFF0C744),
+          unselectedItemColor: const Color(0xFF9FB0BD),
           type: BottomNavigationBarType.fixed, // هام جداً لضمان ظهور أكثر من 4 عناصر بانتظام
           onTap: (index) => setState(() => _selectedIndex = index),
           items: const [

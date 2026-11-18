@@ -66,7 +66,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('إعدادات البرنامج'),
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color(0xFF9C3FC1),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -80,7 +80,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('عنوان البرنامج العام في الأعلى', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.teal)),
+                    const Text('عنوان البرنامج العام في الأعلى', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF9C3FC1))),
                     const SizedBox(height: 10),
                     TextField(
                       controller: _appNameController,
@@ -104,7 +104,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('مجلد حفظ لقطات الشاشة والتقارير', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.teal)),
+                    const Text('مجلد حفظ لقطات الشاشة والتقارير', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF9C3FC1))),
                     const SizedBox(height: 10),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -122,7 +122,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         const SizedBox(height: 10),
                         ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.teal.shade50, foregroundColor: Colors.teal.shade800),
+                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2D465B), foregroundColor: const Color(0xFFF0C744)),
                           icon: const Icon(Icons.folder_open),
                           label: const Text('تغيير المجلد'),
                           onPressed: () async {
@@ -157,7 +157,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // 3. حول البرنامج (المبرمج والتفاصيل)
             Card(
               elevation: 3,
-              color: Colors.teal.shade50,
+              color: const Color(0xFF2D465B),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -165,9 +165,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     const Row(
                       children: [
-                        Icon(Icons.info, color: Colors.teal),
+                        Icon(Icons.info, color: const Color(0xFF9C3FC1)),
                         SizedBox(width: 8),
-                        Text('حول البرنامج', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.teal)),
+                        Text('حول البرنامج', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF9C3FC1))),
                       ],
                     ),
                     const Divider(height: 20),
@@ -175,7 +175,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: 8),
                     const Text(' برمجة وتصميم: المهندس خالد علي عوده', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
-                    const Text(' رقم الهاتف: 0986366109', style: TextStyle(fontSize: 14, color: Colors.teal, fontWeight: FontWeight.bold)),
+                    const Text(' رقم الهاتف: 0986366109', style: TextStyle(fontSize: 14, color: const Color(0xFF9C3FC1), fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
@@ -185,7 +185,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // زر الحفظ العام
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.teal,
+                backgroundColor: const Color(0xFF9C3FC1),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),

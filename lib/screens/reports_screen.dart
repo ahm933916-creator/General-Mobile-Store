@@ -103,7 +103,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       alignment: WrapAlignment.spaceBetween,
                       runSpacing: 4,
                       children: [
-                        Text('$appTitle 📦', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.teal)),
+                        Text('$appTitle 📦', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF9C3FC1))),
                         Text('التاريخ: ${DateTime.now().toString().split(' ')[0]}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                       ],
                     ),
@@ -114,7 +114,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         padding: const EdgeInsets.only(bottom: 10),
                         child: Text(
                           _dateFilterType == 'specific' ? '📅 فترة التقرير ليوم: $_specificDate' : '📅 فترة التقرير: من $_startDate إلى $_endDate',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.teal),
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF9C3FC1)),
                         ),
                       ),
 
@@ -137,7 +137,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       },
                       children: [
                         TableRow(
-                          decoration: BoxDecoration(color: Colors.teal.shade700),
+                          decoration: BoxDecoration(color: const Color(0xFF7B2FA0)),
                           children: const [
                             Padding(padding: EdgeInsets.all(6.0), child: Text('المبيعات', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
                             Padding(padding: EdgeInsets.all(6.0), child: Text('الوااصل', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
@@ -170,7 +170,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         actions: [
           // زر الحفظ التلقائي في المجلد المحدد بالإعدادات كصورة
           ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9C3FC1), foregroundColor: Colors.white),
             icon: const Icon(Icons.save_alt),
             label: const Text('حفظ جدول التقرير كصورة'),
             onPressed: () async {
@@ -243,7 +243,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('تقارير المبيعات والأرباح والخزنة'),
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color(0xFF9C3FC1),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -270,7 +270,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             Row(
               children: [
                 ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9C3FC1), foregroundColor: Colors.white),
                   icon: const Icon(Icons.date_range),
                   label: const Text('يوم محدد'),
                   onPressed: () async {
@@ -290,7 +290,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9C3FC1), foregroundColor: Colors.white),
                   icon: const Icon(Icons.date_range),
                   label: const Text('بين تاريخين'),
                   onPressed: () async {
@@ -325,10 +325,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(6),
                 margin: const EdgeInsets.only(top: 4),
-                decoration: BoxDecoration(color: Colors.teal[50], borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.teal.shade200)),
+                decoration: BoxDecoration(color: const Color(0xFF2D465B), borderRadius: BorderRadius.circular(6), border: Border.all(color: const Color(0xFF617C93))),
                 child: Text(
                   _dateFilterType == 'specific' ? '📅 التقرير ليوم: $_specificDate' : '📅 التقرير للفترة: من $_startDate إلى $_endDate',
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.teal),
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: const Color(0xFF9C3FC1)),
                   textAlign: TextAlign.right,
                 ),
               ),

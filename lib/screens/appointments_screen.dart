@@ -109,7 +109,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                       alignment: WrapAlignment.spaceBetween,
                       runSpacing: 4,
                       children: [
-                        Text('$appTitle 📦', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.teal)),
+                        Text('$appTitle 📦', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF9C3FC1))),
                         Text('التاريخ: ${DateTime.now().toString().split(' ')[0]}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                       ],
                     ),
@@ -120,7 +120,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                         padding: const EdgeInsets.only(bottom: 10),
                         child: Text(
                           _dateFilterType == 'specific' ? '📅 فترة التقرير ليوم: $_specificDate' : '📅 فترة التقرير: من $_startDate إلى $_endDate',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.teal),
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF9C3FC1)),
                         ),
                       ),
 
@@ -143,7 +143,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                       },
                       children: [
                         TableRow(
-                          decoration: BoxDecoration(color: Colors.teal.shade700),
+                          decoration: BoxDecoration(color: const Color(0xFF7B2FA0)),
                           children: const [
                             Padding(padding: EdgeInsets.all(6.0), child: Text('رقم الفاتورة', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
                             Padding(padding: EdgeInsets.all(6.0), child: Text('التاريخ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
@@ -179,7 +179,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
         actions: [
           // زر الحفظ التلقائي في المجلد المحدد بالإعدادات كصورة
           ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9C3FC1), foregroundColor: Colors.white),
             icon: const Icon(Icons.save_alt),
             label: const Text('حفظ جدول السجلات كصورة'),
             onPressed: () async {
@@ -264,7 +264,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                     },
                     children: [
                       const TableRow(
-                        decoration: BoxDecoration(color: Colors.teal),
+                        decoration: BoxDecoration(color: const Color(0xFF9C3FC1)),
                         children: [
                           Padding(padding: EdgeInsets.all(6), child: Text('اسم المنتج', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                           Padding(padding: EdgeInsets.all(6), child: Text('الكمية', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
@@ -302,7 +302,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('إغلاق')),
           ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9C3FC1), foregroundColor: Colors.white),
             icon: const Icon(Icons.print),
             label: const Text('حفظ / طباعة الفاتورة كصورة'),
             onPressed: () async {
@@ -472,14 +472,14 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                       controller: barcodeCtrl,
                       decoration: InputDecoration(
                         labelText: 'مسح الباركود أو إدخال كود المنتج',
-                        prefixIcon: const Icon(Icons.qr_code_scanner, color: Colors.teal),
+                        prefixIcon: const Icon(Icons.qr_code_scanner, color: const Color(0xFF9C3FC1)),
                         border: const OutlineInputBorder(),
                         suffixIcon: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
                               tooltip: 'بحث بالكود أو الاسم',
-                              icon: const Icon(Icons.search, color: Colors.teal),
+                              icon: const Icon(Icons.search, color: const Color(0xFF9C3FC1)),
                               onPressed: () {
                             String codeInput = barcodeCtrl.text.trim().toLowerCase();
                             try {
@@ -568,7 +568,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
                               transactionType == 'rent' ? 'المنتج للإيجار' : 'المنتج للبيع',
-                              style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold),
+                              style: const TextStyle(color: const Color(0xFF9C3FC1), fontWeight: FontWeight.bold),
                             ),
                           ),
                         if (selectedProduct != null && selectedProduct!.isForRent && transactionType == 'rent')
@@ -626,7 +626,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                         SizedBox(
                           width: isCompact ? dialogContentWidth : null,
                           child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12)),
+                            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9C3FC1), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12)),
                             icon: const Icon(Icons.add),
                             label: const Text('إضافة المنتج للفاتورة'),
                             onPressed: () {
@@ -708,7 +708,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                                         const SizedBox(width: 6),
                                         SizedBox(
                                           width: 72,
-                                          child: Text('الإجمالي:\n${item['total']} ل.س', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.teal, fontSize: 11)),
+                                          child: Text('الإجمالي:\n${item['total']} ل.س', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, color: const Color(0xFF9C3FC1), fontSize: 11)),
                                         ),
                                         IconButton(
                                           visualDensity: VisualDensity.compact,
@@ -758,7 +758,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
             actions: [
               TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
               ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9C3FC1), foregroundColor: Colors.white),
                 onPressed: () async {
                   if (invoiceItems.isNotEmpty) {
                     if (isEditing) {
@@ -818,7 +818,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('إدارة المبيعات والفواتير'),
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color(0xFF9C3FC1),
         actions: [
           // زر معاينة الجدول المنظم والمطابق لشاشة المنتجات
           TextButton.icon(
@@ -832,7 +832,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddSalesInvoiceDialog(),
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color(0xFF9C3FC1),
         child: _isLoadingData
             ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
             : const Icon(Icons.add),
@@ -857,7 +857,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
             Row(
               children: [
                 ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9C3FC1), foregroundColor: Colors.white),
                   icon: const Icon(Icons.date_range),
                   label: const Text('يوم محدد'),
                   onPressed: () async {
@@ -872,7 +872,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9C3FC1), foregroundColor: Colors.white),
                   icon: const Icon(Icons.date_range),
                   label: const Text('بين تاريخين'),
                   onPressed: () async {
@@ -895,10 +895,10 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(6),
                 margin: const EdgeInsets.only(top: 4),
-                decoration: BoxDecoration(color: Colors.teal[50], borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.teal.shade200)),
+                decoration: BoxDecoration(color: const Color(0xFF2D465B), borderRadius: BorderRadius.circular(6), border: Border.all(color: const Color(0xFF617C93))),
                 child: Text(
                   _dateFilterType == 'specific' ? '📅 التاريخ المختار: $_specificDate' : '📅 الفترة المختارة: من $_startDate إلى $_endDate',
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.teal),
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: const Color(0xFF9C3FC1)),
                   textAlign: TextAlign.right,
                 ),
               ),

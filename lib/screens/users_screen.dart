@@ -69,7 +69,7 @@ class _UsersScreenState extends State<UsersScreen> {
                       alignment: WrapAlignment.spaceBetween,
                       runSpacing: 4,
                       children: [
-                        Text('$appTitle 📦', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.teal)),
+                        Text('$appTitle 📦', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF9C3FC1))),
                         Text('التاريخ: ${DateTime.now().toString().split(' ')[0]}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                       ],
                     ),
@@ -92,7 +92,7 @@ class _UsersScreenState extends State<UsersScreen> {
                       },
                       children: [
                         TableRow(
-                          decoration: BoxDecoration(color: Colors.teal.shade700),
+                          decoration: BoxDecoration(color: const Color(0xFF7B2FA0)),
                           children: const [
                             Padding(padding: EdgeInsets.all(8.0), child: Text('الكود', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
                             Padding(padding: EdgeInsets.all(8.0), child: Text('اسم العميل', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
@@ -126,7 +126,7 @@ class _UsersScreenState extends State<UsersScreen> {
         actions: [
           // زر الحفظ التلقائي في المجلد المحدد بالإعدادات
           ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9C3FC1), foregroundColor: Colors.white),
             icon: const Icon(Icons.save_alt),
             label: const Text('حفظ جدول العملاء كصورة'),
             onPressed: () async {
@@ -190,7 +190,7 @@ class _UsersScreenState extends State<UsersScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9C3FC1), foregroundColor: Colors.white),
             onPressed: () async {
               if (nameCtrl.text.isEmpty || phoneCtrl.text.isEmpty) return;
 
@@ -223,7 +223,7 @@ class _UsersScreenState extends State<UsersScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('إدارة العملاء والمستخدمين'),
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color(0xFF9C3FC1),
         actions: [
           // زر المعاينة والجدول الموحد تماماً مثل المنتجات
           TextButton.icon(
@@ -239,7 +239,7 @@ class _UsersScreenState extends State<UsersScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showUserDialog(),
-        backgroundColor: Colors.teal,
+        backgroundColor: const Color(0xFF9C3FC1),
         child: const Icon(Icons.add),
       ),
       body: Padding(
