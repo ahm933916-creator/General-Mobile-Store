@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/image_storage_service.dart';
+import '../theme_controller.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -14,6 +15,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _appNameController = TextEditingController(text: 'شركة إدارة المخزون والمبيعات');
   String _savedDirectory = '';
+  bool _isDarkMode = true;
 
   @override
   void initState() {
@@ -33,6 +35,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       _appNameController.text = prefs.getString('app_title') ?? 'شركة إدارة المخزون والمبيعات';
       _savedDirectory = selectedDirectory;
+      _isDarkMode = prefs.getBool('dark_mode') ?? true;
     });
     if (storedDirectory != selectedDirectory) await prefs.setString('save_directory', selectedDirectory);
   }
@@ -42,6 +45,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('app_title', _appNameController.text.trim());
     await prefs.setString('save_directory', _savedDirectory);
+    await prefs.setBool('dark_mode', _isDarkMode);
 
     try {
       await ImageStorageService.configuredDirectory();
@@ -96,7 +100,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 16),
 
-            // 2. تحديد المجلد لحفظ لقطات الشاشة
+            // 2. اختيار مظهر التطبيق
+            Card(
+              elevation: 3,
+              child: SwitchListTile(
+                secondary: Icon(_isDarkMode ? Icons.dark_mode : Icons.light_mode, color: const Color(0xFFF0C744)),
+                title: const Text('مظهر التطبيق', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                subtitle: Text(_isDarkMode ? 'الوضع الداكن - خلفية غامقة' : 'الوضع النهاري - خلفية بيضاء'),
+                value: _isDarkMode,
+                activeColor: const Color(0xFFF0C744),
+                onChanged: (value) async {
+                  setState(() => _isDarkMode = value);
+                  await saveThemeMode(value ? ThemeMode.dark : ThemeMode.light);
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // 3. تحديد المجلد لحفظ لقطات الشاشة
             Card(
               elevation: 3,
               child: Padding(
@@ -115,7 +136,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               : 'المجلد الحالي: $_savedDirectory',
                           style: TextStyle(
                             fontSize: 13,
-                            color: _savedDirectory.isEmpty ? Colors.red : Colors.black87,
+                            color: _savedDirectory.isEmpty ? Colors.red : Theme.of(context).colorScheme.onSurface,
                           ),
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
@@ -157,7 +178,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // 3. حول البرنامج (المبرمج والتفاصيل)
             Card(
               elevation: 3,
-              color: const Color(0xFF2D465B),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
