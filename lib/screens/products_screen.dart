@@ -320,7 +320,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2D465B), foregroundColor: const Color(0xFF9C3FC1)[800]),
+                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2D465B), foregroundColor: const Color(0xFFF0C744)),
                           icon: const Icon(Icons.folder_open, size: 16),
                           label: const Text('اختيار صورة المنتج', style: TextStyle(fontSize: 11)),
                           onPressed: () async {
