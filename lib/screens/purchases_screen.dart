@@ -12,6 +12,7 @@ class PurchasesScreen extends StatefulWidget {
 
 class _PurchasesScreenState extends State<PurchasesScreen> {
   List invoices = [], products = [], suppliers = [];
+  final GlobalKey _tableKey = GlobalKey();
   @override void initState() { super.initState(); load(); }
   Future<void> load() async {
     final values = await Future.wait([
@@ -65,21 +66,40 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
         ]))),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
-          ElevatedButton(onPressed: () async { if (items.isEmpty) return; final value = manualPaid ? (double.tryParse(paid.text) ?? 0) : total; await DatabaseHelper.instance.insertPurchaseInvoice({'invoiceNumber': number.text, 'date': DateTime.now().toIso8601String().split('T').first, 'supplierId': supplier.id, 'totalAmount': total, 'paidAmount': value, 'remainingDebt': (total - value).clamp(0, double.infinity), 'items': items}); if (dialogContext.mounted) Navigator.pop(dialogContext); load(); }, child: const Text('حفظ الفاتورة')),
+          ElevatedButton(onPressed: () async { if (items.isEmpty) return; final value = manualPaid ? (double.tryParse(paid.text) ?? 0) : total; await DatabaseHelper.instance.insertPurchaseInvoice({'invoiceNumber': number.text, 'date': DateTime.now().toIso8601String().split('T').first, 'supplierId': supplier.id, 'totalAmount': total, 'paidAmount': value, 'remainingDebt': (total - value).clamp(0, double.infinity), 'currencyCode': currencySettings.value.code, 'exchangeRate': currencySettings.value.rate, 'items': items}); if (dialogContext.mounted) Navigator.pop(dialogContext); load(); }, child: const Text('حفظ الفاتورة')),
         ],
       );
     }));
+  }
+
+  void _showTablePreview() {
+    showDialog<void>(context: context, builder: (dialogContext) => AlertDialog(
+      title: const Text('معاينة جدول المشتريات'),
+      content: SizedBox(width: 760, child: SingleChildScrollView(child: RepaintBoundary(
+        key: _tableKey,
+        child: Container(color: Colors.white, padding: const EdgeInsets.all(12), child: Directionality(
+          textDirection: TextDirection.rtl,
+          child: Table(border: TableBorder.all(color: Colors.grey), children: [
+            const TableRow(decoration: BoxDecoration(color: Color(0xFF7B2FA0)), children: [
+              Padding(padding: EdgeInsets.all(6), child: Text('الفاتورة', style: TextStyle(color: Colors.white))), Padding(padding: EdgeInsets.all(6), child: Text('التاريخ', style: TextStyle(color: Colors.white))), Padding(padding: EdgeInsets.all(6), child: Text('المورد', style: TextStyle(color: Colors.white))), Padding(padding: EdgeInsets.all(6), child: Text('الإجمالي', style: TextStyle(color: Colors.white))),
+            ]),
+            ...invoices.map((i) => TableRow(children: [Padding(padding: const EdgeInsets.all(6), child: Text('${i['invoiceNumber']}')), Padding(padding: const EdgeInsets.all(6), child: Text('${i['date']}')), Padding(padding: const EdgeInsets.all(6), child: Text('${i['supplierName'] ?? 'مورد'}')), Padding(padding: const EdgeInsets.all(6), child: Text(formatStoredAmount((i['totalAmount'] as num).toDouble(), code: i['currencyCode']?.toString(), rate: (i['exchangeRate'] as num?)?.toDouble())))])),
+          ]),
+        )),
+      ))),
+      actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إغلاق'))],
+    ));
   }
 
   @override Widget build(BuildContext context) {
     final total = invoices.fold<double>(0, (sum, i) => sum + (i['totalAmount'] as num).toDouble());
     final debt = invoices.fold<double>(0, (sum, i) => sum + (i['remainingDebt'] as num).toDouble());
     return Scaffold(
-      appBar: AppBar(title: const Text('المشتريات'), actions: [TextButton.icon(style: TextButton.styleFrom(foregroundColor: Colors.white), icon: const Icon(Icons.people), label: const Text('الموردون'), onPressed: () async { await Navigator.push(context, MaterialPageRoute(builder: (_) => const SuppliersScreen())); load(); }), IconButton(icon: const Icon(Icons.refresh), onPressed: load)]),
+      appBar: AppBar(title: const Text('المشتريات'), actions: [TextButton.icon(style: TextButton.styleFrom(foregroundColor: Colors.white), icon: const Icon(Icons.table_chart), label: const Text('معاينة الجدول'), onPressed: _showTablePreview), TextButton.icon(style: TextButton.styleFrom(foregroundColor: Colors.white), icon: const Icon(Icons.people), label: const Text('الموردون'), onPressed: () async { await Navigator.push(context, MaterialPageRoute(builder: (_) => const SuppliersScreen())); load(); }), IconButton(icon: const Icon(Icons.refresh), onPressed: load)]),
       floatingActionButton: FloatingActionButton(onPressed: createInvoice, child: const Icon(Icons.add)),
       body: Column(children: [
         Padding(padding: const EdgeInsets.all(8), child: Row(children: [Expanded(child: _stat('المشتريات', total, Colors.blue)), Expanded(child: _stat('الأرباح', 0, Colors.green)), Expanded(child: _stat('الديون', debt, Colors.red)), Expanded(child: _stat('الصافي', total - debt, Colors.orange))])),
-        Expanded(child: invoices.isEmpty ? const Center(child: Text('لا توجد فواتير مشتريات')) : ListView.builder(itemCount: invoices.length, itemBuilder: (context, index) { final i = invoices[index]; return Card(child: ListTile(title: Text('فاتورة ${i['invoiceNumber']} | ${i['supplierName'] ?? 'مورد'}'), subtitle: Text('${i['date']}\nالإجمالي: ${currencySettings.value.format((i['totalAmount'] as num).toDouble())} | الدين: ${currencySettings.value.format((i['remainingDebt'] as num).toDouble())}'), isThreeLine: true, trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () async { await DatabaseHelper.instance.deletePurchaseInvoice(i['id']); load(); }))); })),
+        Expanded(child: invoices.isEmpty ? const Center(child: Text('لا توجد فواتير مشتريات')) : ListView.builder(itemCount: invoices.length, itemBuilder: (context, index) { final i = invoices[index]; final code = i['currencyCode']?.toString(); final rate = (i['exchangeRate'] as num?)?.toDouble(); return Card(child: ListTile(title: Text('فاتورة ${i['invoiceNumber']} | ${i['supplierName'] ?? 'مورد'}'), subtitle: Text('${i['date']}\nالإجمالي: ${formatStoredAmount((i['totalAmount'] as num).toDouble(), code: code, rate: rate)} | الدين: ${formatStoredAmount((i['remainingDebt'] as num).toDouble(), code: code, rate: rate)}'), isThreeLine: true, trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () async { await DatabaseHelper.instance.deletePurchaseInvoice(i['id']); load(); }))); })),
       ]),
     );
   }

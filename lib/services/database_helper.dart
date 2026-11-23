@@ -20,7 +20,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 9, // الموردون والمشتريات والكمية المشتراة
+      version: 10, // سجل العملة وتحويل أسعار المنتجات
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -56,6 +56,7 @@ class DatabaseHelper {
         status TEXT NOT NULL,
         quantity INTEGER NOT NULL DEFAULT 1,
         purchasedQuantity INTEGER NOT NULL DEFAULT 0,
+        currencyCode TEXT NOT NULL DEFAULT 'SYP',
         purchasePrice REAL NOT NULL DEFAULT 0.0,
         sellingPrice REAL NOT NULL DEFAULT 0.0,
         isForSale INTEGER NOT NULL DEFAULT 1,
@@ -94,7 +95,9 @@ class DatabaseHelper {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         type TEXT NOT NULL,
         date TEXT NOT NULL,
-        cost REAL NOT NULL
+        cost REAL NOT NULL,
+        currencyCode TEXT NOT NULL DEFAULT 'SYP',
+        exchangeRate REAL NOT NULL DEFAULT 1
       )
     ''');
 
@@ -107,6 +110,8 @@ class DatabaseHelper {
         totalAmount REAL NOT NULL,
         paidAmount REAL NOT NULL,
         remainingDebt REAL NOT NULL,
+        currencyCode TEXT NOT NULL DEFAULT 'SYP',
+        exchangeRate REAL NOT NULL DEFAULT 1,
         FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE
       )
     ''');
@@ -130,6 +135,8 @@ class DatabaseHelper {
         totalAmount REAL NOT NULL,
         paidAmount REAL NOT NULL,
         remainingDebt REAL NOT NULL,
+        currencyCode TEXT NOT NULL DEFAULT 'SYP',
+        exchangeRate REAL NOT NULL DEFAULT 1,
         FOREIGN KEY (supplierId) REFERENCES suppliers (id) ON DELETE SET NULL
       )
     ''');
@@ -226,6 +233,19 @@ class DatabaseHelper {
         '''CREATE TABLE IF NOT EXISTS purchase_items (id INTEGER PRIMARY KEY AUTOINCREMENT, invoiceId INTEGER, productId INTEGER, price REAL NOT NULL, quantity INTEGER NOT NULL, total REAL NOT NULL)''',
       ]) { try { await db.execute(statement); } catch (_) {} }
     }
+
+    if (oldVersion < 10) {
+      for (final statement in [
+        "ALTER TABLE products ADD COLUMN currencyCode TEXT NOT NULL DEFAULT 'SYP'",
+        "ALTER TABLE sales_invoices ADD COLUMN currencyCode TEXT NOT NULL DEFAULT 'SYP'",
+        'ALTER TABLE sales_invoices ADD COLUMN exchangeRate REAL NOT NULL DEFAULT 1',
+        "ALTER TABLE purchase_invoices ADD COLUMN currencyCode TEXT NOT NULL DEFAULT 'SYP'",
+        'ALTER TABLE purchase_invoices ADD COLUMN exchangeRate REAL NOT NULL DEFAULT 1',
+        "ALTER TABLE expenses ADD COLUMN currencyCode TEXT NOT NULL DEFAULT 'SYP'",
+        'ALTER TABLE expenses ADD COLUMN exchangeRate REAL NOT NULL DEFAULT 1',
+      ]) { try { await db.execute(statement); } catch (_) {} }
+    }
+
     if (oldVersion < 9) {
       try { await db.execute('CREATE INDEX IF NOT EXISTS idx_purchase_items_invoice ON purchase_items(invoiceId)'); } catch (_) {}
     }
@@ -290,6 +310,8 @@ class DatabaseHelper {
       final id = await txn.insert('purchase_invoices', {
         'invoiceNumber': data['invoiceNumber'], 'date': data['date'], 'supplierId': data['supplierId'],
         'totalAmount': data['totalAmount'], 'paidAmount': data['paidAmount'], 'remainingDebt': data['remainingDebt'],
+        'currencyCode': data['currencyCode'] ?? 'SYP',
+        'exchangeRate': data['exchangeRate'] ?? 1,
       });
       for (final item in (data['items'] as List)) {
         await txn.insert('purchase_items', {'invoiceId': id, 'productId': item['productId'], 'price': item['price'], 'quantity': item['quantity'], 'total': item['total']});
@@ -341,6 +363,25 @@ class DatabaseHelper {
   Future<int> deleteCategory(int id) async {
     final db = await database;
     return await db.delete('categories', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> convertProductPrices({required String fromCode, required double fromRate, required String toCode, required double toRate}) async {
+    final db = await database;
+    final rows = await db.query('products');
+    for (final row in rows) {
+      final storedCode = row['currencyCode']?.toString() ?? fromCode;
+      final sourceRate = storedCode == 'USD' ? (fromRate <= 0 ? 1 : fromRate) : 1;
+      final baseSypPurchase = ((row['purchasePrice'] as num?)?.toDouble() ?? 0) * sourceRate;
+      final baseSypSelling = ((row['sellingPrice'] as num?)?.toDouble() ?? 0) * sourceRate;
+      final baseSypRental = ((row['rentalPrice'] as num?)?.toDouble() ?? 0) * sourceRate;
+      final targetRate = toCode == 'USD' ? (toRate <= 0 ? 1 : toRate) : 1;
+      await db.update('products', {
+        'purchasePrice': baseSypPurchase / targetRate,
+        'sellingPrice': baseSypSelling / targetRate,
+        'rentalPrice': baseSypRental / targetRate,
+        'currencyCode': toCode,
+      }, where: 'id = ?', whereArgs: [row['id']]);
+    }
   }
 
   // ==================== عمليات المنتجات ====================
@@ -428,6 +469,8 @@ class DatabaseHelper {
         'totalAmount': invoiceData['totalAmount'],
         'paidAmount': invoiceData['paidAmount'],
         'remainingDebt': invoiceData['remainingDebt'],
+        'currencyCode': invoiceData['currencyCode'] ?? 'SYP',
+        'exchangeRate': invoiceData['exchangeRate'] ?? 1,
       });
 
       for (var item in items) {

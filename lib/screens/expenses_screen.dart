@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/models.dart';
 import '../services/database_helper.dart';
 import '../services/image_storage_service.dart';
+import '../currency_controller.dart';
 
 class ExpensesScreen extends StatefulWidget {
   const ExpensesScreen({super.key});
@@ -271,9 +272,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               onPressed: () async {
                 if (costCtrl.text.trim().isNotEmpty) {
                   if (isEditing) {
-                    await DatabaseHelper.instance.updateExpense(Expense(id: expenseToEdit.id, type: selectedType, date: selectedDate, cost: double.tryParse(costCtrl.text.trim()) ?? 0.0));
+                    await DatabaseHelper.instance.updateExpense(Expense(id: expenseToEdit.id, type: selectedType, date: selectedDate, cost: double.tryParse(costCtrl.text.trim()) ?? 0.0, currencyCode: currencySettings.value.code, exchangeRate: currencySettings.value.rate));
                   } else {
-                    await DatabaseHelper.instance.insertExpense(Expense(type: selectedType, date: selectedDate, cost: double.tryParse(costCtrl.text.trim()) ?? 0.0));
+                    await DatabaseHelper.instance.insertExpense(Expense(type: selectedType, date: selectedDate, cost: double.tryParse(costCtrl.text.trim()) ?? 0.0, currencyCode: currencySettings.value.code, exchangeRate: currencySettings.value.rate));
                   }
                   if (context.mounted) Navigator.pop(context);
                   _loadData();
@@ -426,7 +427,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                       return Card(
                         margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 5),
                         child: ListTile(
-                          title: Text('${exp.type} - ${exp.cost} ل.س', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          title: Text('${exp.type} - ${formatStoredAmount(exp.cost, code: exp.currencyCode, rate: exp.exchangeRate)}', style: const TextStyle(fontWeight: FontWeight.bold)),
                           subtitle: Text('التاريخ: ${exp.date}'),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,

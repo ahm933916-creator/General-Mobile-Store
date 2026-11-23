@@ -831,6 +831,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                       'totalAmount': totalInvoice,
                       'paidAmount': paidAmount,
                       'remainingDebt': remainingDebt,
+                      'currencyCode': currencySettings.value.code,
+                      'exchangeRate': currencySettings.value.rate,
                       'items': invoiceItems,
                     }, stockAlreadyReserved: !isEditing);
 
@@ -984,7 +986,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                           margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 5),
                           child: ListTile(
                             title: Text('فاتورة رقم: ${inv['invoiceNumber']} | العميل: ${inv['userName'] ?? "عميل نقدي"}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: Text('التاريخ: ${inv['date']} | الإجمالي: ${inv['totalAmount']} ل.س\nالدفعة: ${inv['paidAmount']} ل.س | الدين المتبقي: ${inv['remainingDebt']} ل.س'),
+                            subtitle: Text('التاريخ: ${inv['date']} | الإجمالي: ${formatStoredAmount((inv['totalAmount'] as num).toDouble(), code: inv['currencyCode']?.toString(), rate: (inv['exchangeRate'] as num?)?.toDouble())}\nالدفعة: ${formatStoredAmount((inv['paidAmount'] as num).toDouble(), code: inv['currencyCode']?.toString(), rate: (inv['exchangeRate'] as num?)?.toDouble())} | الدين المتبقي: ${formatStoredAmount((inv['remainingDebt'] as num).toDouble(), code: inv['currencyCode']?.toString(), rate: (inv['exchangeRate'] as num?)?.toDouble())}'),
                             isThreeLine: true,
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,

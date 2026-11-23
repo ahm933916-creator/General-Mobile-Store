@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/models.dart';
+import '../services/database_helper.dart';
 
 class ProductMapScreen extends StatefulWidget {
   final List<Product> products;
@@ -11,6 +12,17 @@ class ProductMapScreen extends StatefulWidget {
 class _ProductMapScreenState extends State<ProductMapScreen> {
   String query = '';
   int? categoryId;
+  Map<int, String> categoryNames = {};
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    final categories = await DatabaseHelper.instance.getCategories();
+    if (mounted) setState(() => categoryNames = {for (final category in categories) category.id!: category.name});
+  }
   @override
   Widget build(BuildContext context) {
     final categories = widget.products.map((p) => p.categoryId).toSet();
@@ -21,7 +33,7 @@ class _ProductMapScreenState extends State<ProductMapScreen> {
         Padding(padding: const EdgeInsets.all(10), child: Row(children: [
           Expanded(child: TextField(decoration: const InputDecoration(labelText: 'تصفية بالاسم أو الباركود', prefixIcon: Icon(Icons.search)), onChanged: (v) => setState(() => query = v))),
           const SizedBox(width: 8),
-          DropdownButton<int>(value: categoryId, hint: const Text('كل الأصناف'), items: [const DropdownMenuItem<int>(value: null, child: Text('كل الأصناف')), ...categories.map((id) => DropdownMenuItem(value: id, child: Text('الصنف $id')))], onChanged: (v) => setState(() => categoryId = v)),
+          DropdownButton<int>(value: categoryId, hint: const Text('كل الأصناف'), items: [const DropdownMenuItem<int>(value: null, child: Text('كل الأصناف')), ...categories.map((id) => DropdownMenuItem(value: id, child: Text(categoryNames[id] ?? 'بدون تصنيف')))], onChanged: (v) => setState(() => categoryId = v)),
         ])),
         Expanded(child: GridView.builder(padding: const EdgeInsets.all(10), gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 180, mainAxisExtent: 190, crossAxisSpacing: 8, mainAxisSpacing: 8), itemCount: products.length, itemBuilder: (context, index) {
           final product = products[index];

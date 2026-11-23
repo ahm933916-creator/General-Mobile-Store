@@ -8,6 +8,7 @@ class Product {
   final String status;
   final int quantity;
   final int purchasedQuantity;
+  final String currencyCode;
   final double purchasePrice;
   final double sellingPrice;
   final bool isForSale;
@@ -25,6 +26,7 @@ class Product {
     required this.status,
     required this.quantity,
     this.purchasedQuantity = 0,
+    this.currencyCode = 'SYP',
     required this.purchasePrice,
     required this.sellingPrice,
     this.isForSale = true,
@@ -45,6 +47,7 @@ class Product {
       'status': status,
       'quantity': quantity,
       'purchasedQuantity': purchasedQuantity,
+      'currencyCode': currencyCode,
       'purchasePrice': purchasePrice,
       'sellingPrice': sellingPrice,
       'isForSale': isForSale ? 1 : 0,
@@ -66,6 +69,7 @@ class Product {
       status: map['status'] ?? 'متوفر',
       quantity: (map['quantity'] as num?)?.toInt() ?? 0,
       purchasedQuantity: (map['purchasedQuantity'] as num?)?.toInt() ?? 0,
+      currencyCode: map['currencyCode']?.toString() ?? 'SYP',
       purchasePrice: (map['purchasePrice'] as num?)?.toDouble() ?? 0.0,
       sellingPrice: (map['sellingPrice'] as num?)?.toDouble() ?? 0.0,
       isForSale: (map['isForSale'] as num?)?.toInt() != 0,
@@ -174,12 +178,16 @@ class Expense {
   final String type;
   final String date;
   final double cost;
+  final String currencyCode;
+  final double exchangeRate;
 
   Expense({
     this.id,
     required this.type,
     required this.date,
     required this.cost,
+    this.currencyCode = 'SYP',
+    this.exchangeRate = 1,
   });
 
   Map<String, dynamic> toMap() {
@@ -188,6 +196,8 @@ class Expense {
       'type': type,
       'date': date,
       'cost': cost,
+      'currencyCode': currencyCode,
+      'exchangeRate': exchangeRate,
     };
   }
 
@@ -197,6 +207,8 @@ class Expense {
       type: map['type'] ?? '',
       date: map['date'] ?? '',
       cost: (map['cost'] as num?)?.toDouble() ?? 0.0,
+      currencyCode: map['currencyCode']?.toString() ?? 'SYP',
+      exchangeRate: (map['exchangeRate'] as num?)?.toDouble() ?? 1,
     );
   }
 }

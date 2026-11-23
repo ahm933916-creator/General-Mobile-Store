@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'services/database_helper.dart';
 
 final ValueNotifier<CurrencySettings> currencySettings = ValueNotifier(const CurrencySettings());
 
@@ -12,6 +13,11 @@ class CurrencySettings {
   String format(double value) => '${display(value).toStringAsFixed(code == 'USD' ? 2 : 0)} $symbol';
 }
 
+String formatStoredAmount(double value, {required String? code, required double? rate}) {
+  final storedCode = code == 'USD' ? 'USD' : 'SYP';
+  return '${(storedCode == 'USD' ? value : value).toStringAsFixed(storedCode == 'USD' ? 2 : 0)} ${storedCode == 'USD' ? '\$' : 'ل.س'}';
+}
+
 Future<void> loadCurrencySettings() async {
   final prefs = await SharedPreferences.getInstance();
   currencySettings.value = CurrencySettings(
@@ -21,8 +27,13 @@ Future<void> loadCurrencySettings() async {
 }
 
 Future<void> saveCurrencySettings({required String code, required double rate}) async {
+  final previous = currencySettings.value;
+  final nextRate = rate <= 0 ? 1 : rate;
+  if (previous.code != code || previous.rate != nextRate) {
+    await DatabaseHelper.instance.convertProductPrices(fromCode: previous.code, fromRate: previous.rate, toCode: code, toRate: nextRate);
+  }
   final prefs = await SharedPreferences.getInstance();
   await prefs.setString('currency_code', code);
-  await prefs.setDouble('currency_rate', rate <= 0 ? 1 : rate);
-  currencySettings.value = CurrencySettings(code: code, rate: rate <= 0 ? 1 : rate);
+  await prefs.setDouble('currency_rate', nextRate);
+  currencySettings.value = CurrencySettings(code: code, rate: nextRate);
 }
