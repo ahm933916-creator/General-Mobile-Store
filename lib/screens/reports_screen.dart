@@ -17,6 +17,7 @@ class ReportsScreen extends StatefulWidget {
 
 class _ReportsScreenState extends State<ReportsScreen> {
   List _salesInvoices = [];
+  List _purchaseInvoices = [];
   List _expenses = [];
   
   String? _dateFilterType;
@@ -29,15 +30,28 @@ class _ReportsScreenState extends State<ReportsScreen> {
   @override
   void initState() {
     super.initState();
+    currencySettings.addListener(_onCurrencyChanged);
     _loadReportData();
+  }
+
+  void _onCurrencyChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    currencySettings.removeListener(_onCurrencyChanged);
+    super.dispose();
   }
 
   void _loadReportData() async {
     try {
       final invoices = await DatabaseHelper.instance.getSalesInvoices();
       final expensesList = await DatabaseHelper.instance.getExpenses();
+      final purchases = await DatabaseHelper.instance.getPurchaseInvoices();
       setState(() {
         _salesInvoices = invoices;
+        _purchaseInvoices = purchases;
         _expenses = expensesList;
       });
     } catch (e) {
@@ -80,8 +94,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
     double totalPaid = filteredInvoices.fold(0.0, (sum, inv) => sum + convertStoredAmount((inv['paidAmount'] as num).toDouble(), code: inv['currencyCode']?.toString(), rate: (inv['exchangeRate'] as num?)?.toDouble()));
     double totalDebt = filteredInvoices.fold(0.0, (sum, inv) => sum + convertStoredAmount((inv['remainingDebt'] as num).toDouble(), code: inv['currencyCode']?.toString(), rate: (inv['exchangeRate'] as num?)?.toDouble()));
     double totalExpenses = filteredExpenses.fold(0.0, (sum, exp) => sum + convertStoredAmount(exp.cost, code: exp.currencyCode, rate: exp.exchangeRate));
-    double treasuryBalance = totalPaid - totalExpenses;
-
+    final filteredPurchases = _purchaseInvoices.where((invoice) {
+      final invoiceDate = invoice['date']?.toString() ?? '';
+      if (_dateFilterType == 'specific' && _specificDate != null) return invoiceDate == _specificDate;
+      if (_dateFilterType == 'range' && _startDate != null && _endDate != null) return invoiceDate.compareTo(_startDate!) >= 0 && invoiceDate.compareTo(_endDate!) <= 0;
+      return true;
+    }).toList();
+    final totalPurchases = filteredPurchases.fold<double>(0, (sum, invoice) => sum + convertStoredAmount((invoice['totalAmount'] as num).toDouble(), code: invoice['currencyCode']?.toString(), rate: (invoice['exchangeRate'] as num?)?.toDouble()));
+    final totalPurchasePaid = filteredPurchases.fold<double>(0, (sum, invoice) => sum + convertStoredAmount((invoice['paidAmount'] as num).toDouble(), code: invoice['currencyCode']?.toString(), rate: (invoice['exchangeRate'] as num?)?.toDouble()));
+    final treasuryBalance = totalPaid - totalPurchasePaid - totalExpenses;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -126,7 +147,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: SizedBox(
-                        width: 620,
+                        width: 760,
                         child: Table(
                       border: TableBorder.all(color: Colors.grey.shade300),
                       columnWidths: const {
@@ -141,7 +162,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           decoration: BoxDecoration(color: const Color(0xFF7B2FA0)),
                           children: const [
                             Padding(padding: EdgeInsets.all(6.0), child: Text('المبيعات', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
-                            Padding(padding: EdgeInsets.all(6.0), child: Text('الوااصل', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
+                            Padding(padding: EdgeInsets.all(6.0), child: Text('المشتريات', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
+                            Padding(padding: EdgeInsets.all(6.0), child: Text('الواصل', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
                             Padding(padding: EdgeInsets.all(6.0), child: Text('الديون', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
                             Padding(padding: EdgeInsets.all(6.0), child: Text('المصروفات', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
                             Padding(padding: EdgeInsets.all(6.0), child: Text('الخزنة (الصافي)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
@@ -149,11 +171,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         ),
                         TableRow(
                           children: [
-                            Padding(padding: EdgeInsets.all(6.0), child: Text('$totalSales', style: const TextStyle(fontSize: 11), textAlign: TextAlign.center)),
-                            Padding(padding: EdgeInsets.all(6.0), child: Text('$totalPaid', style: const TextStyle(fontSize: 11), textAlign: TextAlign.center)),
-                            Padding(padding: EdgeInsets.all(6.0), child: Text('$totalDebt', style: const TextStyle(fontSize: 11, color: Colors.orange), textAlign: TextAlign.center)),
-                            Padding(padding: EdgeInsets.all(6.0), child: Text('$totalExpenses', style: const TextStyle(fontSize: 11, color: Colors.red), textAlign: TextAlign.center)),
-                            Padding(padding: EdgeInsets.all(6.0), child: Text('$treasuryBalance', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.purple), textAlign: TextAlign.center)),
+                            Padding(padding: EdgeInsets.all(6.0), child: Text(currencySettings.value.format(totalSales), style: const TextStyle(fontSize: 11), textAlign: TextAlign.center)),
+                            Padding(padding: EdgeInsets.all(6.0), child: Text(currencySettings.value.format(totalPurchases), style: const TextStyle(fontSize: 11), textAlign: TextAlign.center)),
+                            Padding(padding: EdgeInsets.all(6.0), child: Text(currencySettings.value.format(totalPaid), style: const TextStyle(fontSize: 11), textAlign: TextAlign.center)),
+                            Padding(padding: EdgeInsets.all(6.0), child: Text(currencySettings.value.format(totalDebt), style: const TextStyle(fontSize: 11, color: Colors.orange), textAlign: TextAlign.center)),
+                            Padding(padding: EdgeInsets.all(6.0), child: Text(currencySettings.value.format(totalExpenses), style: const TextStyle(fontSize: 11, color: Colors.red), textAlign: TextAlign.center)),
+                            Padding(padding: EdgeInsets.all(6.0), child: Text(currencySettings.value.format(treasuryBalance), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.purple), textAlign: TextAlign.center)),
                           ],
                         ),
                       ],
@@ -238,8 +261,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
     double totalSales = filteredInvoices.fold(0.0, (sum, inv) => sum + convertStoredAmount((inv['totalAmount'] as num).toDouble(), code: inv['currencyCode']?.toString(), rate: (inv['exchangeRate'] as num?)?.toDouble()));
     double totalPaid = filteredInvoices.fold(0.0, (sum, inv) => sum + convertStoredAmount((inv['paidAmount'] as num).toDouble(), code: inv['currencyCode']?.toString(), rate: (inv['exchangeRate'] as num?)?.toDouble()));
     double totalDebt = filteredInvoices.fold(0.0, (sum, inv) => sum + convertStoredAmount((inv['remainingDebt'] as num).toDouble(), code: inv['currencyCode']?.toString(), rate: (inv['exchangeRate'] as num?)?.toDouble()));
+    final filteredPurchases = _purchaseInvoices.where((invoice) {
+      final invoiceDate = invoice['date']?.toString() ?? '';
+      if (_dateFilterType == 'specific' && _specificDate != null) return invoiceDate == _specificDate;
+      if (_dateFilterType == 'range' && _startDate != null && _endDate != null) return invoiceDate.compareTo(_startDate!) >= 0 && invoiceDate.compareTo(_endDate!) <= 0;
+      return true;
+    }).toList();
+    double totalPurchases = filteredPurchases.fold(0.0, (sum, invoice) => sum + convertStoredAmount((invoice['totalAmount'] as num).toDouble(), code: invoice['currencyCode']?.toString(), rate: (invoice['exchangeRate'] as num?)?.toDouble()));
+    double totalPurchasePaid = filteredPurchases.fold(0.0, (sum, invoice) => sum + convertStoredAmount((invoice['paidAmount'] as num).toDouble(), code: invoice['currencyCode']?.toString(), rate: (invoice['exchangeRate'] as num?)?.toDouble()));
     double totalExpenses = filteredExpenses.fold(0.0, (sum, exp) => sum + convertStoredAmount(exp.cost, code: exp.currencyCode, rate: exp.exchangeRate));
-    double treasuryBalance = totalPaid - totalExpenses;
+    double treasuryBalance = totalPaid - totalPurchasePaid - totalExpenses;
 
     return Scaffold(
       appBar: AppBar(
@@ -337,19 +368,21 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
             Row(
               children: [
-                Expanded(child: _buildSummaryCard('إجمالي المبيعات', '$totalSales ل.س', Colors.blue)),
+                Expanded(child: _buildSummaryCard('إجمالي المبيعات', currencySettings.value.format(totalSales), Colors.blue)),
                 const SizedBox(width: 6),
-                Expanded(child: _buildSummaryCard('الدفعة الواصلة', '$totalPaid ل.س', Colors.green)),
+                Expanded(child: _buildSummaryCard('المشتريات', currencySettings.value.format(totalPurchases), Colors.deepPurple)),
                 const SizedBox(width: 6),
-                Expanded(child: _buildSummaryCard('الديون المتبقية', '$totalDebt ل.س', Colors.orange)),
+                Expanded(child: _buildSummaryCard('الدفعة الواصلة', currencySettings.value.format(totalPaid), Colors.green)),
               ],
             ),
             const SizedBox(height: 8),
             Row(
               children: [
-                Expanded(child: _buildSummaryCard('المصروفات', '$totalExpenses ل.س', Colors.redAccent)),
+                Expanded(child: _buildSummaryCard('الديون المتبقية', currencySettings.value.format(totalDebt), Colors.orange)),
                 const SizedBox(width: 6),
-                Expanded(child: _buildSummaryCard('الخزنة (الصافي)', '$treasuryBalance ل.س', Colors.purple)),
+                Expanded(child: _buildSummaryCard('المصروفات', currencySettings.value.format(totalExpenses), Colors.redAccent)),
+                const SizedBox(width: 6),
+                Expanded(child: _buildSummaryCard('الخزنة (الصافي)', currencySettings.value.format(treasuryBalance), Colors.purple)),
               ],
             ),
             const Divider(height: 25, thickness: 2),
