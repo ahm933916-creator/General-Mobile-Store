@@ -7,6 +7,7 @@ class Product {
   final String? barcodeImagePath; // حقل مسار صورة الباركود المخصص
   final String status;
   final int quantity;
+  final int purchasedQuantity;
   final double purchasePrice;
   final double sellingPrice;
   final bool isForSale;
@@ -23,6 +24,7 @@ class Product {
     this.barcodeImagePath,
     required this.status,
     required this.quantity,
+    this.purchasedQuantity = 0,
     required this.purchasePrice,
     required this.sellingPrice,
     this.isForSale = true,
@@ -42,6 +44,7 @@ class Product {
       'barcodeImagePath': barcodeImagePath,
       'status': status,
       'quantity': quantity,
+      'purchasedQuantity': purchasedQuantity,
       'purchasePrice': purchasePrice,
       'sellingPrice': sellingPrice,
       'isForSale': isForSale ? 1 : 0,
@@ -62,6 +65,7 @@ class Product {
       barcodeImagePath: map['barcodeImagePath'],
       status: map['status'] ?? 'متوفر',
       quantity: (map['quantity'] as num?)?.toInt() ?? 0,
+      purchasedQuantity: (map['purchasedQuantity'] as num?)?.toInt() ?? 0,
       purchasePrice: (map['purchasePrice'] as num?)?.toDouble() ?? 0.0,
       sellingPrice: (map['sellingPrice'] as num?)?.toDouble() ?? 0.0,
       isForSale: (map['isForSale'] as num?)?.toInt() != 0,
@@ -136,6 +140,32 @@ class Category {
       name: map['name'] ?? '',
     );
   }
+}
+
+class Supplier {
+  final int? id;
+  final String code;
+  final String name;
+  final String phone;
+  final String? address;
+
+  Supplier({this.id, required this.code, required this.name, required this.phone, this.address});
+
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'code': code,
+        'name': name,
+        'phone': phone,
+        'address': address,
+      };
+
+  factory Supplier.fromMap(Map<String, dynamic> map) => Supplier(
+        id: map['id'],
+        code: map['code']?.toString() ?? '',
+        name: map['name']?.toString() ?? '',
+        phone: map['phone']?.toString() ?? '',
+        address: map['address']?.toString(),
+      );
 }
 
 // نموذج المصروفات (Expense)

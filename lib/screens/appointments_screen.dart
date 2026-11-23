@@ -4,10 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import '../models/models.dart';
 import '../services/database_helper.dart';
 import '../services/image_storage_service.dart';
 import 'barcode_scanner_screen.dart';
+import 'product_map_screen.dart';
 
 class AppointmentsScreen extends StatefulWidget {
   const AppointmentsScreen({super.key});
@@ -340,6 +343,21 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     return Navigator.push<String>(context, MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()));
   }
 
+  Future<String?> _readBarcodeFromImage(String path) async {
+    if (Platform.isLinux || Platform.isWindows) return null;
+    final controller = MobileScannerController(autoStart: false);
+    try {
+      final capture = await controller.analyzeImage(path);
+      for (final barcode in capture?.barcodes ?? []) {
+        final value = barcode.rawValue?.trim();
+        if (value != null && value.isNotEmpty) return value;
+      }
+      return null;
+    } finally {
+      await controller.dispose();
+    }
+  }
+
   Future<void> _showAddSalesInvoiceDialog({Map? invoiceToEdit}) async {
     // The page can be displayed before its first async database read finishes.
     // Reload once when the user explicitly asks to add an invoice.
@@ -381,6 +399,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     String? rentalEndDate;
 
     List invoiceItems = isEditing ? List.from(invoiceToEdit['items'] ?? []) : [];
+    final Map<int, int> reservedQuantities = {};
     bool isPaidManuallyEdited = isEditing;
 
     showDialog(
@@ -505,6 +524,27 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                                 } catch (_) {
                                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('⚠️ تم قراءة الكود، لكنه غير مسجل كمنتج')));
                                 }
+                              },
+                            ),
+                            IconButton(
+                              tooltip: 'خريطة المنتجات',
+                              icon: const Icon(Icons.grid_view, color: Colors.orange),
+                              onPressed: () async {
+                                final picked = await Navigator.push<Product>(context, MaterialPageRoute(builder: (_) => ProductMapScreen(products: _products.cast<Product>())));
+                                if (picked != null) { barcodeCtrl.text = picked.code; selectProduct(picked); }
+                              },
+                            ),
+                            IconButton(
+                              tooltip: 'اختيار صورة باركود من الملفات',
+                              icon: const Icon(Icons.folder_open, color: Colors.teal),
+                              onPressed: () async {
+                                final result = await FilePicker.platform.pickFiles(type: FileType.image);
+                                final path = result?.files.single.path;
+                                if (path == null) return;
+                                final code = await _readBarcodeFromImage(path);
+                                if (code == null) { if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تعذر قراءة الباركود من الصورة'))); return; }
+                                barcodeCtrl.text = code;
+                                try { selectProduct(_products.firstWhere((p) => (p as Product).code.toLowerCase() == code.toLowerCase()) as Product); } catch (_) { if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('الكود غير مسجل كمنتج'))); }
                               },
                             ),
                           ],
@@ -642,7 +682,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                               double price = double.tryParse(sellingPriceCtrl.text) ?? 0.0;
                               int qty = int.tryParse(quantityCtrl.text) ?? 1;
 
-                              if (qty > selectedProduct!.quantity && !isEditing) {
+                              final productId = selectedProduct!.id!;
+                              final alreadyReserved = reservedQuantities[productId] ?? 0;
+                              if (qty > selectedProduct!.quantity - alreadyReserved && !isEditing) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(content: Text('❌ خطأ: الكمية المطلوبة أكبر من المتوفر (${selectedProduct!.quantity})'), backgroundColor: Colors.red),
                                 );
@@ -650,9 +692,14 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                               }
 
                               double total = price * qty;
+                              final existingIndex = invoiceItems.indexWhere((item) => item['productId'] == productId && item['transactionType'] == transactionType);
 
                               setDialogState(() {
-                                invoiceItems.add({
+                                if (existingIndex >= 0) {
+                                  final nextQuantity = (invoiceItems[existingIndex]['quantity'] as int) + qty;
+                                  invoiceItems[existingIndex]['quantity'] = nextQuantity;
+                                  invoiceItems[existingIndex]['total'] = price * nextQuantity;
+                                } else invoiceItems.add({
                                   'productId': selectedProduct!.id,
                                   'productName': selectedProduct!.name,
                                   'price': price,
@@ -662,6 +709,10 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                                   'rentalStartDate': transactionType == 'rent' ? rentalStartDate : null,
                                   'rentalEndDate': transactionType == 'rent' ? rentalEndDate : null,
                                 });
+                                if (!isEditing) {
+                                  reservedQuantities[productId] = alreadyReserved + qty;
+                                  DatabaseHelper.instance.changeProductQuantity(productId, -qty);
+                                }
                                 selectedProduct = null;
                                 transactionType = 'sale';
                                 rentalStartDate = null;
@@ -716,9 +767,16 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                                           constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                                           icon: const Icon(Icons.delete, color: Colors.red, size: 20),
                                           onPressed: () {
+                                            final removed = invoiceItems[index];
                                             setDialogState(() {
                                               invoiceItems.removeAt(index);
                                             });
+                                            if (!isEditing) {
+                                              final productId = removed['productId'] as int;
+                                              final amount = (removed['quantity'] as num).toInt();
+                                              reservedQuantities[productId] = (reservedQuantities[productId] ?? amount) - amount;
+                                              DatabaseHelper.instance.changeProductQuantity(productId, amount);
+                                            }
                                           },
                                         ),
                                       ],
@@ -756,7 +814,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
               ),
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+              TextButton(onPressed: () async { if (!isEditing) { for (final entry in reservedQuantities.entries) { if (entry.value > 0) await DatabaseHelper.instance.changeProductQuantity(entry.key, entry.value); } } if (context.mounted) Navigator.pop(context); }, child: const Text('إلغاء')),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9C3FC1), foregroundColor: Colors.white),
                 onPressed: () async {
@@ -773,7 +831,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                       'paidAmount': paidAmount,
                       'remainingDebt': remainingDebt,
                       'items': invoiceItems,
-                    });
+                    }, stockAlreadyReserved: !isEditing);
 
                     if (errorMsg != null) {
                       if (context.mounted) {
@@ -814,6 +872,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
 
       return matchesSearch && matchesDate;
     }).toList();
+    final totalSales = filteredInvoices.fold<double>(0, (sum, inv) => sum + ((inv['totalAmount'] as num?)?.toDouble() ?? 0));
+    final totalDebt = filteredInvoices.fold<double>(0, (sum, inv) => sum + ((inv['remainingDebt'] as num?)?.toDouble() ?? 0));
+    final totalProfit = filteredInvoices.fold<double>(0, (sum, inv) => sum + (inv['items'] as List).fold<double>(0, (itemSum, item) => itemSum + (((item['price'] as num?)?.toDouble() ?? 0) * ((item['quantity'] as num?)?.toDouble() ?? 0))));
 
     return Scaffold(
       appBar: AppBar(
@@ -842,6 +903,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
         padding: const EdgeInsets.all(8.0),
         child: Column(
           children: [
+            Row(children: [Expanded(child: _summaryCard('المبيعات', totalSales, Colors.blue)), Expanded(child: _summaryCard('الأرباح', totalProfit, Colors.green)), Expanded(child: _summaryCard('الديون', totalDebt, Colors.red)), Expanded(child: _summaryCard('الصافي', totalSales - totalDebt, Colors.orange))]),
+            const SizedBox(height: 6),
             Row(
               children: [
                 Expanded(
@@ -950,4 +1013,6 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       ),
     );
   }
+
+  Widget _summaryCard(String label, double value, Color color) => Card(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4), child: Column(children: [Text(label, style: TextStyle(color: color, fontSize: 11)), Text(currencySettings.value.format(value), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)])));
 }

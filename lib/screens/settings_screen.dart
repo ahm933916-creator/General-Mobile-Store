@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/image_storage_service.dart';
 import '../theme_controller.dart';
+import '../currency_controller.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -16,6 +17,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _appNameController = TextEditingController(text: 'شركة إدارة المخزون والمبيعات');
   String _savedDirectory = '';
   bool _isDarkMode = true;
+  String _currencyCode = 'SYP';
+  final TextEditingController _rateController = TextEditingController(text: '1');
 
   @override
   void initState() {
@@ -36,6 +39,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _appNameController.text = prefs.getString('app_title') ?? 'شركة إدارة المخزون والمبيعات';
       _savedDirectory = selectedDirectory;
       _isDarkMode = prefs.getBool('dark_mode') ?? true;
+      _currencyCode = prefs.getString('currency_code') ?? 'SYP';
+      _rateController.text = (prefs.getDouble('currency_rate') ?? 1).toStringAsFixed(0);
     });
     if (storedDirectory != selectedDirectory) await prefs.setString('save_directory', selectedDirectory);
   }
@@ -46,6 +51,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.setString('app_title', _appNameController.text.trim());
     await prefs.setString('save_directory', _savedDirectory);
     await prefs.setBool('dark_mode', _isDarkMode);
+    await saveCurrencySettings(code: _currencyCode, rate: double.tryParse(_rateController.text) ?? 1);
 
     try {
       await ImageStorageService.configuredDirectory();
@@ -113,6 +119,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   setState(() => _isDarkMode = value);
                   await saveThemeMode(value ? ThemeMode.dark : ThemeMode.light);
                 },
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            Card(
+              elevation: 3,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('العملة وسعر الصرف', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF9C3FC1))),
+                  const SizedBox(height: 10),
+                  Row(children: [
+                    Expanded(child: DropdownButtonFormField<String>(value: _currencyCode, items: const [DropdownMenuItem(value: 'SYP', child: Text('الليرة السورية (ل.س)')), DropdownMenuItem(value: 'USD', child: Text('الدولار الأمريكي (\$)'))], onChanged: (v) => setState(() => _currencyCode = v ?? 'SYP'), decoration: const InputDecoration(labelText: 'العملة'))),
+                    const SizedBox(width: 10),
+                    Expanded(child: TextField(controller: _rateController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سعر صرف الدولار بالليرة'))),
+                  ]),
+                ]),
               ),
             ),
             const SizedBox(height: 16),

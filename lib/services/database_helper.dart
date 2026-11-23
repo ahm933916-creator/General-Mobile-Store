@@ -20,7 +20,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 7, // إضافة حالة حجز الإيجار وتواريخ الإيجار
+      version: 9, // الموردون والمشتريات والكمية المشتراة
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -55,6 +55,7 @@ class DatabaseHelper {
         barcodeImagePath TEXT,
         status TEXT NOT NULL,
         quantity INTEGER NOT NULL DEFAULT 1,
+        purchasedQuantity INTEGER NOT NULL DEFAULT 0,
         purchasePrice REAL NOT NULL DEFAULT 0.0,
         sellingPrice REAL NOT NULL DEFAULT 0.0,
         isForSale INTEGER NOT NULL DEFAULT 1,
@@ -107,6 +108,42 @@ class DatabaseHelper {
         paidAmount REAL NOT NULL,
         remainingDebt REAL NOT NULL,
         FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE suppliers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        code TEXT NOT NULL UNIQUE,
+        name TEXT NOT NULL UNIQUE,
+        phone TEXT NOT NULL,
+        address TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE purchase_invoices (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        invoiceNumber TEXT NOT NULL UNIQUE,
+        date TEXT NOT NULL,
+        supplierId INTEGER,
+        totalAmount REAL NOT NULL,
+        paidAmount REAL NOT NULL,
+        remainingDebt REAL NOT NULL,
+        FOREIGN KEY (supplierId) REFERENCES suppliers (id) ON DELETE SET NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE purchase_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        invoiceId INTEGER,
+        productId INTEGER,
+        price REAL NOT NULL,
+        quantity INTEGER NOT NULL,
+        total REAL NOT NULL,
+        FOREIGN KEY (invoiceId) REFERENCES purchase_invoices (id) ON DELETE CASCADE,
+        FOREIGN KEY (productId) REFERENCES products (id) ON DELETE CASCADE
       )
     ''');
 
@@ -180,6 +217,19 @@ class DatabaseHelper {
       } catch (_) {}
     }
 
+
+    if (oldVersion < 8) {
+      for (final statement in [
+        'ALTER TABLE products ADD COLUMN purchasedQuantity INTEGER NOT NULL DEFAULT 0',
+        '''CREATE TABLE IF NOT EXISTS suppliers (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL UNIQUE, name TEXT NOT NULL UNIQUE, phone TEXT NOT NULL, address TEXT)''',
+        '''CREATE TABLE IF NOT EXISTS purchase_invoices (id INTEGER PRIMARY KEY AUTOINCREMENT, invoiceNumber TEXT NOT NULL UNIQUE, date TEXT NOT NULL, supplierId INTEGER, totalAmount REAL NOT NULL, paidAmount REAL NOT NULL, remainingDebt REAL NOT NULL)''',
+        '''CREATE TABLE IF NOT EXISTS purchase_items (id INTEGER PRIMARY KEY AUTOINCREMENT, invoiceId INTEGER, productId INTEGER, price REAL NOT NULL, quantity INTEGER NOT NULL, total REAL NOT NULL)''',
+      ]) { try { await db.execute(statement); } catch (_) {} }
+    }
+    if (oldVersion < 9) {
+      try { await db.execute('CREATE INDEX IF NOT EXISTS idx_purchase_items_invoice ON purchase_items(invoiceId)'); } catch (_) {}
+    }
+
     if (oldVersion < 7) {
       for (final statement in [
         "ALTER TABLE products ADD COLUMN rentalStatus TEXT NOT NULL DEFAULT 'متاح'",
@@ -222,6 +272,54 @@ class DatabaseHelper {
   }
 
   Future<void> updateUserTotalDebtDirectly(int userId, double newTotalDebt) async {}
+
+  // ==================== الموردون ====================
+  Future<int> insertSupplier(Supplier supplier) async => (await database).insert('suppliers', supplier.toMap());
+  Future<List<Supplier>> getSuppliers() async => (await database).query('suppliers').then((rows) => rows.map((row) => Supplier.fromMap(Map<String, dynamic>.from(row))).toList());
+  Future<int> updateSupplier(Supplier supplier) async => (await database).update('suppliers', supplier.toMap(), where: 'id = ?', whereArgs: [supplier.id]);
+  Future<int> deleteSupplier(int id) async => (await database).delete('suppliers', where: 'id = ?', whereArgs: [id]);
+
+  Future<void> changeProductQuantity(int productId, int delta) async {
+    final db = await database;
+    await db.rawUpdate('UPDATE products SET quantity = quantity + ? WHERE id = ?', [delta, productId]);
+  }
+
+  Future<int> insertPurchaseInvoice(Map<String, dynamic> data) async {
+    final db = await database;
+    return db.transaction((txn) async {
+      final id = await txn.insert('purchase_invoices', {
+        'invoiceNumber': data['invoiceNumber'], 'date': data['date'], 'supplierId': data['supplierId'],
+        'totalAmount': data['totalAmount'], 'paidAmount': data['paidAmount'], 'remainingDebt': data['remainingDebt'],
+      });
+      for (final item in (data['items'] as List)) {
+        await txn.insert('purchase_items', {'invoiceId': id, 'productId': item['productId'], 'price': item['price'], 'quantity': item['quantity'], 'total': item['total']});
+        await txn.rawUpdate('UPDATE products SET quantity = quantity + ?, purchasedQuantity = purchasedQuantity + ? WHERE id = ?', [item['quantity'], item['quantity'], item['productId']]);
+      }
+      return id;
+    });
+  }
+
+  Future<List> getPurchaseInvoices() async {
+    final db = await database;
+    final invoices = await db.rawQuery('SELECT purchase_invoices.*, suppliers.name AS supplierName FROM purchase_invoices LEFT JOIN suppliers ON suppliers.id = purchase_invoices.supplierId ORDER BY purchase_invoices.id DESC');
+    final result = <Map<String, dynamic>>[];
+    for (final invoice in invoices) {
+      final row = Map<String, dynamic>.from(invoice);
+      row['items'] = await db.rawQuery('SELECT purchase_items.*, products.name AS productName FROM purchase_items LEFT JOIN products ON products.id = purchase_items.productId WHERE purchase_items.invoiceId = ?', [invoice['id']]);
+      result.add(row);
+    }
+    return result;
+  }
+
+  Future<int> deletePurchaseInvoice(int invoiceId) async {
+    final db = await database;
+    return db.transaction((txn) async {
+      final items = await txn.query('purchase_items', where: 'invoiceId = ?', whereArgs: [invoiceId]);
+      for (final item in items) await txn.rawUpdate('UPDATE products SET quantity = quantity - ?, purchasedQuantity = purchasedQuantity - ? WHERE id = ?', [item['quantity'], item['quantity'], item['productId']]);
+      await txn.delete('purchase_items', where: 'invoiceId = ?', whereArgs: [invoiceId]);
+      return txn.delete('purchase_invoices', where: 'id = ?', whereArgs: [invoiceId]);
+    });
+  }
 
   // ==================== عمليات التصنيفات ====================
   Future<int> insertCategory(Category category) async {
@@ -294,7 +392,7 @@ class DatabaseHelper {
   }
 
   // ==================== الفواتير والمبيعات الجديدة ====================
-  Future<String?> insertSalesInvoice(Map<String, dynamic> invoiceData) async {
+  Future<String?> insertSalesInvoice(Map<String, dynamic> invoiceData, {bool stockAlreadyReserved = false}) async {
     final db = await database;
 
     List items = invoiceData['items'];
@@ -314,7 +412,7 @@ class DatabaseHelper {
         if (item['transactionType'] == 'rent' && prodResult.first['rentalStatus']?.toString() == 'محجوز للإيجار') {
           return '⚠️ المنتج ($prodName) محجوز للإيجار ولا يمكن حجزه مرة أخرى.';
         }
-        if (requestedQty > availableQty) {
+        if (!stockAlreadyReserved && requestedQty > availableQty) {
           return '⚠️ الكمية المطلوبة للمنتج ($prodName) أكبر من المتوفر في المخزون ($availableQty فقط)!';
         }
       } else {
@@ -357,11 +455,9 @@ class DatabaseHelper {
         }
 
         // خصم الكمية المباعة من مخزون المنتج الكلي
-        await txn.rawUpdate('''
-          UPDATE products 
-          SET quantity = quantity - ? 
-          WHERE id = ?
-        ''', [qty, prodId]);
+        if (!stockAlreadyReserved) {
+          await txn.rawUpdate('UPDATE products SET quantity = quantity - ? WHERE id = ?', [qty, prodId]);
+        }
       }
     });
 
@@ -396,7 +492,12 @@ class DatabaseHelper {
 
   Future<int> deleteSalesInvoice(int invoiceId) async {
     final db = await database;
-    return await db.delete('sales_invoices', where: 'id = ?', whereArgs: [invoiceId]);
+    return db.transaction((txn) async {
+      final items = await txn.query('invoice_items', where: 'invoiceId = ?', whereArgs: [invoiceId]);
+      for (final item in items) await txn.rawUpdate('UPDATE products SET quantity = quantity + ? WHERE id = ?', [item['quantity'], item['productId']]);
+      await txn.delete('invoice_items', where: 'invoiceId = ?', whereArgs: [invoiceId]);
+      return txn.delete('sales_invoices', where: 'id = ?', whereArgs: [invoiceId]);
+    });
   }
 
   // ==================== عمليات المصروفات ====================

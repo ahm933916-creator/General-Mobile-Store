@@ -26,6 +26,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
   
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  int? _inventoryCategoryId;
   final GlobalKey _tablePreviewKey = GlobalKey(); // مفتاح الجدول المخصص للمعاينة والحفظ
 
   @override
@@ -272,9 +273,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
     final barcodeCtrl = TextEditingController(text: isEditing ? productToEdit.code : 'BC-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}');
     final nameCtrl = TextEditingController(text: isEditing ? productToEdit.name : '');
     final quantityCtrl = TextEditingController(text: isEditing ? productToEdit.quantity.toString() : '1');
-    final purchasePriceCtrl = TextEditingController(text: isEditing ? productToEdit.purchasePrice.toString() : '0.0');
-    final sellingPriceCtrl = TextEditingController(text: isEditing ? productToEdit.sellingPrice.toString() : '0.0');
-    final rentalPriceCtrl = TextEditingController(text: isEditing ? productToEdit.rentalPrice.toString() : '0.0');
+    final purchasePriceCtrl = TextEditingController(text: isEditing ? productToEdit.purchasePrice.toString() : '0');
+    final sellingPriceCtrl = TextEditingController(text: isEditing ? productToEdit.sellingPrice.toString() : '0');
+    final rentalPriceCtrl = TextEditingController(text: isEditing ? productToEdit.rentalPrice.toString() : '0');
     
     int selectedCategoryId = isEditing ? productToEdit.categoryId : _categories.first.id!;
     String selectedStatus = isEditing ? productToEdit.status : 'متوفر';
@@ -522,6 +523,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   barcodeImagePath: permanentBarcodeImage ?? barcodeImagePath,
                   status: selectedStatus,
                   quantity: int.tryParse(quantityCtrl.text) ?? 1,
+                  purchasedQuantity: isEditing ? productToEdit.purchasedQuantity : 0,
                   purchasePrice: double.tryParse(purchasePriceCtrl.text) ?? 0.0,
                   sellingPrice: double.tryParse(sellingPriceCtrl.text) ?? 0.0,
                   isForSale: isForSale,
@@ -553,7 +555,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
       final name = (prod['name'] ?? '').toString().toLowerCase();
       final code = (prod['code'] ?? '').toString().toLowerCase();
       final query = _searchQuery.toLowerCase();
-      return name.contains(query) || code.contains(query);
+      return (_inventoryCategoryId == null || prod['categoryId'] == _inventoryCategoryId) && (name.contains(query) || code.contains(query));
     }).toList();
 
     return Scaffold(
@@ -597,6 +599,14 @@ class _ProductsScreenState extends State<ProductsScreen> {
               decoration: const InputDecoration(labelText: 'بحث بالاسم أو الكود...', prefixIcon: Icon(Icons.search), border: OutlineInputBorder()),
               onChanged: (val) => setState(() => _searchQuery = val),
             ),
+            const SizedBox(height: 10),
+            Row(children: [
+              Expanded(child: DropdownButtonFormField<int>(value: _inventoryCategoryId, items: [const DropdownMenuItem<int>(value: null, child: Text('الجرد حسب كل الأصناف')), ..._categories.map((c) => DropdownMenuItem(value: c.id, child: Text('جرد: ${c.name}')))], onChanged: (v) => setState(() => _inventoryCategoryId = v), decoration: const InputDecoration(labelText: 'الجرد حسب الصنف'))),
+              const SizedBox(width: 8),
+              Expanded(child: _inventoryCard('مجموع المنتجات', filteredProducts.fold<int>(0, (sum, p) => sum + ((p['quantity'] as num?)?.toInt() ?? 0)), Icons.inventory_2)),
+              const SizedBox(width: 8),
+              Expanded(child: _inventoryCard('السعر الكامل', filteredProducts.fold<double>(0, (sum, p) => sum + (((p['quantity'] as num?)?.toDouble() ?? 0) * ((p['sellingPrice'] as num?)?.toDouble() ?? 0)),), Icons.payments)),
+            ]),
             const SizedBox(height: 10),
             Expanded(
               child: filteredProducts.isEmpty
@@ -683,4 +693,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
       ),
     );
   }
+
+  Widget _inventoryCard(String title, num value, IconData icon) => Card(child: Padding(padding: const EdgeInsets.all(7), child: Row(children: [Icon(icon, size: 18, color: const Color(0xFF9C3FC1)), const SizedBox(width: 4), Expanded(child: Text('$title\n${value.toStringAsFixed(0)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis))])));
 }

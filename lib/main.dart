@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'screens/home_screen.dart';
 import 'theme_controller.dart';
+import 'currency_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -11,6 +12,7 @@ Future<void> main() async {
     databaseFactory = databaseFactoryFfi;
   }
   await loadThemeMode();
+  await loadCurrencySettings();
   runApp(const MyApp());
 }
 

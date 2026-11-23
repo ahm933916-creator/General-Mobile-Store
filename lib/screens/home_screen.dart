@@ -5,6 +5,7 @@ import 'appointments_screen.dart';
 import 'expenses_screen.dart';
 import 'reports_screen.dart';
 import 'settings_screen.dart'; // ⚙️ استيراد صفحة الإعدادات الجديدة
+import 'purchases_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,6 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // ⚙️ إضافة شاشة الإعدادات إلى قائمة الشاشات
   final List<Widget> _screens = const [
     AppointmentsScreen(),
+    PurchasesScreen(),
     ProductsScreen(),
     UsersScreen(),
     ExpensesScreen(),
@@ -43,8 +45,9 @@ class _HomeScreenState extends State<HomeScreen> {
           type: BottomNavigationBarType.fixed, // هام جداً لضمان ظهور أكثر من 4 عناصر بانتظام
           onTap: (index) => setState(() => _selectedIndex = index),
           items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.point_of_sale), label: 'المبيعات'),
-            BottomNavigationBarItem(icon: Icon(Icons.inventory_2), label: 'المنتجات'),
+          BottomNavigationBarItem(icon: Icon(Icons.point_of_sale), label: 'المبيعات'),
+          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: 'المشتريات'),
+          BottomNavigationBarItem(icon: Icon(Icons.inventory_2), label: 'المنتجات'),
             BottomNavigationBarItem(icon: Icon(Icons.people), label: 'المستخدمين'),
             BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet), label: 'المصروفات'),
             BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'التقارير'),
