@@ -9,6 +9,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../models/models.dart';
 import '../services/database_helper.dart';
 import '../services/image_storage_service.dart';
+import '../currency_controller.dart';
 import 'barcode_scanner_screen.dart';
 import 'product_map_screen.dart';
 
