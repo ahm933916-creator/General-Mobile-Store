@@ -282,7 +282,16 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
             ),
           ),
           if (_dateFilterType != null)
-            Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Align(alignment: Alignment.centerRight, child: Text(_dateFilterType == 'specific' ? 'التاريخ المختار: $_specificDate' : 'الفترة: من $_startDate إلى $_endDate', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF9C3FC1)))),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  _dateFilterType == 'specific' ? 'التاريخ المختار: $_specificDate' : 'الفترة: من $_startDate إلى $_endDate',
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF9C3FC1)),
+                ),
+              ),
+            ),
           Padding(padding: const EdgeInsets.all(8), child: Row(children: [Expanded(child: _stat('مجموع المشتريات', total, Colors.blue)), Expanded(child: _stat('الأرباح', 0, Colors.green)), Expanded(child: _stat('الديون', debt, Colors.red)), Expanded(child: _stat('الصافي', total - debt, Colors.orange))])),
           Expanded(
             child: visibleInvoices.isEmpty
