@@ -337,7 +337,9 @@ class DatabaseHelper {
     final db = await database;
     return db.transaction((txn) async {
       final items = await txn.query('purchase_items', where: 'invoiceId = ?', whereArgs: [invoiceId]);
-      for (final item in items) await txn.rawUpdate('UPDATE products SET quantity = quantity - ?, purchasedQuantity = purchasedQuantity - ? WHERE id = ?', [item['quantity'], item['quantity'], item['productId']]);
+      for (final item in items) {
+        await txn.rawUpdate('UPDATE products SET quantity = quantity - ?, purchasedQuantity = purchasedQuantity - ? WHERE id = ?', [item['quantity'], item['quantity'], item['productId']]);
+      }
       await txn.delete('purchase_items', where: 'invoiceId = ?', whereArgs: [invoiceId]);
       return txn.delete('purchase_invoices', where: 'id = ?', whereArgs: [invoiceId]);
     });

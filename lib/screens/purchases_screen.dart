@@ -18,7 +18,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
     final values = await Future.wait([
       DatabaseHelper.instance.getPurchaseInvoices(), DatabaseHelper.instance.getProducts(), DatabaseHelper.instance.getSuppliers(),
     ]);
-    if (mounted) setState(() { invoices = values[0] as List; products = values[1] as List; suppliers = values[2] as List; });
+    if (mounted) setState(() { invoices = values[0]; products = values[1]; suppliers = values[2]; });
   }
 
   Future<void> createInvoice() async {

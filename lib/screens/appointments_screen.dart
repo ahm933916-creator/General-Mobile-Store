@@ -981,7 +981,6 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                       itemCount: filteredInvoices.length,
                       itemBuilder: (context, index) {
                         final inv = filteredInvoices[index];
-                        List items = inv['items'] ?? [];
                         return Card(
                           margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 5),
                           child: ListTile(
