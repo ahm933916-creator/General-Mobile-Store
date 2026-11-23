@@ -9,13 +9,21 @@ class CurrencySettings {
   final double rate;
   const CurrencySettings({this.code = 'SYP', this.rate = 1});
   String get symbol => code == 'USD' ? '\$' : 'ل.س';
-  double display(double value) => code == 'USD' ? value / (rate <= 0 ? 1 : rate) : value;
+  double display(double value) => value;
   String format(double value) => '${display(value).toStringAsFixed(code == 'USD' ? 2 : 0)} $symbol';
 }
 
 String formatStoredAmount(double value, {required String? code, required double? rate}) {
   final storedCode = code == 'USD' ? 'USD' : 'SYP';
   return '${(storedCode == 'USD' ? value : value).toStringAsFixed(storedCode == 'USD' ? 2 : 0)} ${storedCode == 'USD' ? '\$' : 'ل.س'}';
+}
+
+double convertStoredAmount(double value, {required String? code, required double? rate, CurrencySettings? target}) {
+  final sourceCode = code == 'USD' ? 'USD' : 'SYP';
+  final sourceRate = (rate ?? 1) <= 0 ? 1.0 : rate!;
+  final baseSyp = sourceCode == 'USD' ? value * sourceRate : value;
+  final destination = target ?? currencySettings.value;
+  return destination.code == 'USD' ? baseSyp / (destination.rate <= 0 ? 1 : destination.rate) : baseSyp;
 }
 
 Future<void> loadCurrencySettings() async {

@@ -282,7 +282,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                             Padding(padding: EdgeInsets.all(6), child: Text(item['productName']?.toString() ?? 'منتج')),
                             Padding(padding: EdgeInsets.all(6), child: Text(item['quantity'].toString())),
                             Padding(padding: EdgeInsets.all(6), child: Text('${item['price']}')),
-                            Padding(padding: EdgeInsets.all(6), child: Text('${item['total']} ل.س')),
+                            Padding(padding: EdgeInsets.all(6), child: Text(formatStoredAmount((item['total'] as num?)?.toDouble() ?? 0, code: invoice['currencyCode']?.toString(), rate: (invoice['exchangeRate'] as num?)?.toDouble()))),
                           ],
                         );
                       }).toList(),
@@ -291,9 +291,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                     ),
                   ),
                   const Divider(thickness: 2),
-                  Text('إجمالي الفاتورة: ${invoice['totalAmount']} ل.س', style: const TextStyle(fontWeight: FontWeight.bold)),
-                  Text('الدفعة الواصلة: ${invoice['paidAmount']} ل.س'),
-                  Text('الدين المتبقي: ${invoice['remainingDebt']} ل.س', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                  Text('إجمالي الفاتورة: ${formatStoredAmount((invoice['totalAmount'] as num?)?.toDouble() ?? 0, code: invoice['currencyCode']?.toString(), rate: (invoice['exchangeRate'] as num?)?.toDouble())}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text('الدفعة الواصلة: ${formatStoredAmount((invoice['paidAmount'] as num?)?.toDouble() ?? 0, code: invoice['currencyCode']?.toString(), rate: (invoice['exchangeRate'] as num?)?.toDouble())}'),
+                  Text('الدين المتبقي: ${formatStoredAmount((invoice['remainingDebt'] as num?)?.toDouble() ?? 0, code: invoice['currencyCode']?.toString(), rate: (invoice['exchangeRate'] as num?)?.toDouble())}', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
                   const Divider(),
                   const Center(child: Text('شكراً لتعاملكم معنا!', style: TextStyle(fontSize: 12, color: Colors.grey))),
                 ],
@@ -875,11 +875,11 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
 
       return matchesSearch && matchesDate;
     }).toList();
-    final totalSales = filteredInvoices.fold<double>(0, (sum, inv) => sum + ((inv['totalAmount'] as num?)?.toDouble() ?? 0));
-    final totalDebt = filteredInvoices.fold<double>(0, (sum, inv) => sum + ((inv['remainingDebt'] as num?)?.toDouble() ?? 0));
+    final totalSales = filteredInvoices.fold<double>(0, (sum, inv) => sum + convertStoredAmount((inv['totalAmount'] as num?)?.toDouble() ?? 0, code: inv['currencyCode']?.toString(), rate: (inv['exchangeRate'] as num?)?.toDouble()));
+    final totalDebt = filteredInvoices.fold<double>(0, (sum, inv) => sum + convertStoredAmount((inv['remainingDebt'] as num?)?.toDouble() ?? 0, code: inv['currencyCode']?.toString(), rate: (inv['exchangeRate'] as num?)?.toDouble()));
     final totalProfit = filteredInvoices.fold<double>(0, (sum, inv) => sum + (inv['items'] as List).fold<double>(0, (itemSum, item) {
       final quantity = (item['quantity'] as num?)?.toDouble() ?? 0;
-      final salePrice = (item['price'] as num?)?.toDouble() ?? 0;
+      final salePrice = convertStoredAmount((item['price'] as num?)?.toDouble() ?? 0, code: inv['currencyCode']?.toString(), rate: (inv['exchangeRate'] as num?)?.toDouble());
       final product = _products.cast<Product?>().firstWhere((p) => p?.id == item['productId'], orElse: () => null);
       return itemSum + (salePrice - (product?.purchasePrice ?? 0)) * quantity;
     }));

@@ -285,10 +285,23 @@ class DatabaseHelper {
     return await db.delete('users', where: 'id = ?', whereArgs: [id]);
   }
 
-  Future<double> getUserTotalDebt(int userId) async {
+  Future<double> getUserTotalDebt(int userId, {String targetCode = 'SYP', double targetRate = 1}) async {
     final db = await database;
-    final result = await db.rawQuery('SELECT SUM(remainingDebt) as total FROM sales_invoices WHERE userId = ?', [userId]);
-    return (result.first['total'] as num?)?.toDouble() ?? 0.0;
+    final rows = await db.query('sales_invoices', columns: ['remainingDebt', 'currencyCode', 'exchangeRate'], where: 'userId = ?', whereArgs: [userId]);
+    return rows.fold<double>(0, (sum, row) {
+      final value = (row['remainingDebt'] as num?)?.toDouble() ?? 0;
+      final source = row['currencyCode']?.toString() == 'USD' ? value * ((row['exchangeRate'] as num?)?.toDouble() ?? 1) : value;
+      return sum + (targetCode == 'USD' ? source / (targetRate <= 0 ? 1 : targetRate) : source);
+    });
+  }
+
+  Future<double> getSupplierTotalDebt(int supplierId, {String targetCode = 'SYP', double targetRate = 1}) async {
+    final rows = await (await database).query('purchase_invoices', columns: ['remainingDebt', 'currencyCode', 'exchangeRate'], where: 'supplierId = ?', whereArgs: [supplierId]);
+    return rows.fold<double>(0, (sum, row) {
+      final value = (row['remainingDebt'] as num?)?.toDouble() ?? 0;
+      final source = row['currencyCode']?.toString() == 'USD' ? value * ((row['exchangeRate'] as num?)?.toDouble() ?? 1) : value;
+      return sum + (targetCode == 'USD' ? source / (targetRate <= 0 ? 1 : targetRate) : source);
+    });
   }
 
   Future<void> updateUserTotalDebtDirectly(int userId, double newTotalDebt) async {}

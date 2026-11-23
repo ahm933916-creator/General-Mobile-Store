@@ -10,6 +10,7 @@ import '../models/models.dart';
 import '../services/database_helper.dart';
 import '../services/barcode_image_service.dart';
 import '../services/image_storage_service.dart';
+import '../currency_controller.dart';
 import 'categories_screen.dart';
 import 'barcode_scanner_screen.dart';
 
@@ -148,7 +149,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                               Padding(padding: const EdgeInsets.all(8.0), child: Text(prod['name'] ?? '', textAlign: TextAlign.right, style: const TextStyle(fontSize: 12))),
                               Padding(padding: const EdgeInsets.all(8.0), child: Text(prod['categoryName'] ?? 'بدون', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12))),
                               Padding(padding: const EdgeInsets.all(8.0), child: Text(prod['quantity'].toString(), textAlign: TextAlign.center, style: const TextStyle(fontSize: 12))),
-                              Padding(padding: const EdgeInsets.all(8.0), child: Text(prod['sellingPrice'].toString(), textAlign: TextAlign.center, style: const TextStyle(fontSize: 12))),
+                              Padding(padding: const EdgeInsets.all(8.0), child: Text(currencySettings.value.format((prod['sellingPrice'] as num?)?.toDouble() ?? 0), textAlign: TextAlign.center, style: const TextStyle(fontSize: 12))),
                             ],
                           );
                         }),
@@ -526,6 +527,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   purchasedQuantity: isEditing ? productToEdit.purchasedQuantity : 0,
                   purchasePrice: double.tryParse(purchasePriceCtrl.text) ?? 0.0,
                   sellingPrice: double.tryParse(sellingPriceCtrl.text) ?? 0.0,
+                  currencyCode: currencySettings.value.code,
                   isForSale: isForSale,
                   isForRent: isForRent,
                   rentalPrice: double.tryParse(rentalPriceCtrl.text) ?? 0.0,
@@ -605,7 +607,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
               const SizedBox(width: 8),
               Expanded(child: _inventoryCard('مجموع المنتجات', filteredProducts.fold<int>(0, (sum, p) => sum + ((p['quantity'] as num?)?.toInt() ?? 0)), Icons.inventory_2)),
               const SizedBox(width: 8),
-              Expanded(child: _inventoryCard('السعر الكامل', filteredProducts.fold<double>(0, (sum, p) => sum + (((p['quantity'] as num?)?.toDouble() ?? 0) * ((p['sellingPrice'] as num?)?.toDouble() ?? 0)),), Icons.payments)),
+                              Expanded(child: _inventoryCard('السعر الكامل', filteredProducts.fold<double>(0, (sum, p) => sum + (((p['quantity'] as num?)?.toDouble() ?? 0) * ((p['sellingPrice'] as num?)?.toDouble() ?? 0)),), Icons.payments)),
             ]),
             const SizedBox(height: 10),
             Expanded(
@@ -674,7 +676,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  '$name\nكود: $code | التصنيف: ${prodMap['categoryName'] ?? "بدون"}\nالكمية: ${prodMap['quantity']} | سعر المبيع: ${prodMap['sellingPrice']} ل.س | الإيجار: ${prodMap['isForRent'] == 1 ? (prodMap['rentalStatus'] ?? "متاح") : "غير مفعل"}',
+                                  '$name\nكود: $code | التصنيف: ${prodMap['categoryName'] ?? "بدون"}\nالكمية: ${prodMap['quantity']} | سعر المبيع: ${currencySettings.value.format((prodMap['sellingPrice'] as num?)?.toDouble() ?? 0)} | الإيجار: ${prodMap['isForRent'] == 1 ? (prodMap['rentalStatus'] ?? "متاح") : "غير مفعل"}',
                                   maxLines: 3,
                                   overflow: TextOverflow.ellipsis,
                                   textDirection: TextDirection.rtl,

@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/models.dart';
 import '../services/database_helper.dart';
 import '../services/image_storage_service.dart';
+import '../currency_controller.dart';
 
 class UsersScreen extends StatefulWidget {
   const UsersScreen({super.key});
@@ -31,7 +32,7 @@ class _UsersScreenState extends State<UsersScreen> {
     Map<int, double> debts = {};
     for (var user in users) {
       if (user.id != null) {
-        debts[user.id!] = await DatabaseHelper.instance.getUserTotalDebt(user.id!);
+        debts[user.id!] = await DatabaseHelper.instance.getUserTotalDebt(user.id!, targetCode: currencySettings.value.code, targetRate: currencySettings.value.rate);
       }
     }
     setState(() {
@@ -254,7 +255,7 @@ class _UsersScreenState extends State<UsersScreen> {
                   return Card(
                     child: ListTile(
                       title: Text('${user.name} (كود: ${user.code})', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text('الهاتف: ${user.phone} | العنوان: ${user.address ?? "غير محدد"} | الدين: $debt ل.س', style: const TextStyle(color: Colors.red)),
+                      subtitle: Text('الهاتف: ${user.phone} | العنوان: ${user.address ?? "غير محدد"} | الدين: ${currencySettings.value.format(debt)}', style: const TextStyle(color: Colors.red)),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [

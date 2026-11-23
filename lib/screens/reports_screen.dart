@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/database_helper.dart';
 import '../services/image_storage_service.dart';
+import '../currency_controller.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -75,10 +76,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
       return matchesDate;
     }).toList();
 
-    double totalSales = filteredInvoices.fold(0.0, (sum, inv) => sum + (inv['totalAmount'] as num).toDouble());
-    double totalPaid = filteredInvoices.fold(0.0, (sum, inv) => sum + (inv['paidAmount'] as num).toDouble());
-    double totalDebt = filteredInvoices.fold(0.0, (sum, inv) => sum + (inv['remainingDebt'] as num).toDouble());
-    double totalExpenses = filteredExpenses.fold(0.0, (sum, exp) => sum + exp.cost);
+    double totalSales = filteredInvoices.fold(0.0, (sum, inv) => sum + convertStoredAmount((inv['totalAmount'] as num).toDouble(), code: inv['currencyCode']?.toString(), rate: (inv['exchangeRate'] as num?)?.toDouble()));
+    double totalPaid = filteredInvoices.fold(0.0, (sum, inv) => sum + convertStoredAmount((inv['paidAmount'] as num).toDouble(), code: inv['currencyCode']?.toString(), rate: (inv['exchangeRate'] as num?)?.toDouble()));
+    double totalDebt = filteredInvoices.fold(0.0, (sum, inv) => sum + convertStoredAmount((inv['remainingDebt'] as num).toDouble(), code: inv['currencyCode']?.toString(), rate: (inv['exchangeRate'] as num?)?.toDouble()));
+    double totalExpenses = filteredExpenses.fold(0.0, (sum, exp) => sum + convertStoredAmount(exp.cost, code: exp.currencyCode, rate: exp.exchangeRate));
     double treasuryBalance = totalPaid - totalExpenses;
 
     showDialog(
@@ -234,10 +235,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
       return matchesDate;
     }).toList();
 
-    double totalSales = filteredInvoices.fold(0.0, (sum, inv) => sum + (inv['totalAmount'] as num).toDouble());
-    double totalPaid = filteredInvoices.fold(0.0, (sum, inv) => sum + (inv['paidAmount'] as num).toDouble());
-    double totalDebt = filteredInvoices.fold(0.0, (sum, inv) => sum + (inv['remainingDebt'] as num).toDouble());
-    double totalExpenses = filteredExpenses.fold(0.0, (sum, exp) => sum + exp.cost);
+    double totalSales = filteredInvoices.fold(0.0, (sum, inv) => sum + convertStoredAmount((inv['totalAmount'] as num).toDouble(), code: inv['currencyCode']?.toString(), rate: (inv['exchangeRate'] as num?)?.toDouble()));
+    double totalPaid = filteredInvoices.fold(0.0, (sum, inv) => sum + convertStoredAmount((inv['paidAmount'] as num).toDouble(), code: inv['currencyCode']?.toString(), rate: (inv['exchangeRate'] as num?)?.toDouble()));
+    double totalDebt = filteredInvoices.fold(0.0, (sum, inv) => sum + convertStoredAmount((inv['remainingDebt'] as num).toDouble(), code: inv['currencyCode']?.toString(), rate: (inv['exchangeRate'] as num?)?.toDouble()));
+    double totalExpenses = filteredExpenses.fold(0.0, (sum, exp) => sum + convertStoredAmount(exp.cost, code: exp.currencyCode, rate: exp.exchangeRate));
     double treasuryBalance = totalPaid - totalExpenses;
 
     return Scaffold(

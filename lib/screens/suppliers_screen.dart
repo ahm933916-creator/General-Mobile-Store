@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/models.dart';
 import '../services/database_helper.dart';
+import '../currency_controller.dart';
 
 class SuppliersScreen extends StatefulWidget {
   const SuppliersScreen({super.key});
@@ -9,10 +10,15 @@ class SuppliersScreen extends StatefulWidget {
 
 class _SuppliersScreenState extends State<SuppliersScreen> {
   List<Supplier> suppliers = [];
+  Map<int, double> debts = {};
   @override void initState() { super.initState(); load(); }
   Future<void> load() async {
     final value = await DatabaseHelper.instance.getSuppliers();
-    if (mounted) setState(() => suppliers = value);
+    final loadedDebts = <int, double>{};
+    for (final supplier in value) {
+      if (supplier.id != null) loadedDebts[supplier.id!] = await DatabaseHelper.instance.getSupplierTotalDebt(supplier.id!, targetCode: currencySettings.value.code, targetRate: currencySettings.value.rate);
+    }
+    if (mounted) setState(() { suppliers = value; debts = loadedDebts; });
   }
 
   Future<void> edit([Supplier? old]) async {
@@ -47,7 +53,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
     body: suppliers.isEmpty ? const Center(child: Text('لا يوجد موردون')) : ListView.builder(
       padding: const EdgeInsets.all(10), itemCount: suppliers.length,
       itemBuilder: (context, index) { final s = suppliers[index]; return Card(child: ListTile(
-        title: Text('${s.name} (${s.code})'), subtitle: Text('الهاتف: ${s.phone}\nالعنوان: ${s.address ?? 'غير محدد'}'), isThreeLine: true,
+        title: Text('${s.name} (${s.code})'), subtitle: Text('الهاتف: ${s.phone}\nالعنوان: ${s.address ?? 'غير محدد'}\nالدين: ${currencySettings.value.format(debts[s.id] ?? 0)}'), isThreeLine: true,
         trailing: Wrap(children: [
           IconButton(icon: const Icon(Icons.edit, color: Colors.blue), onPressed: () => edit(s)),
           IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () async { if (s.id != null) await DatabaseHelper.instance.deleteSupplier(s.id!); load(); }),
