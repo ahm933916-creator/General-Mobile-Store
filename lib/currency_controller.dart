@@ -28,7 +28,7 @@ Future<void> loadCurrencySettings() async {
 
 Future<void> saveCurrencySettings({required String code, required double rate}) async {
   final previous = currencySettings.value;
-  final nextRate = rate <= 0 ? 1 : rate;
+  final double nextRate = rate <= 0 ? 1.0 : rate;
   if (previous.code != code || previous.rate != nextRate) {
     await DatabaseHelper.instance.convertProductPrices(fromCode: previous.code, fromRate: previous.rate, toCode: code, toRate: nextRate);
   }
