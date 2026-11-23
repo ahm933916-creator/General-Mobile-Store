@@ -874,7 +874,12 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     }).toList();
     final totalSales = filteredInvoices.fold<double>(0, (sum, inv) => sum + ((inv['totalAmount'] as num?)?.toDouble() ?? 0));
     final totalDebt = filteredInvoices.fold<double>(0, (sum, inv) => sum + ((inv['remainingDebt'] as num?)?.toDouble() ?? 0));
-    final totalProfit = filteredInvoices.fold<double>(0, (sum, inv) => sum + (inv['items'] as List).fold<double>(0, (itemSum, item) => itemSum + (((item['price'] as num?)?.toDouble() ?? 0) * ((item['quantity'] as num?)?.toDouble() ?? 0))));
+    final totalProfit = filteredInvoices.fold<double>(0, (sum, inv) => sum + (inv['items'] as List).fold<double>(0, (itemSum, item) {
+      final quantity = (item['quantity'] as num?)?.toDouble() ?? 0;
+      final salePrice = (item['price'] as num?)?.toDouble() ?? 0;
+      final product = _products.cast<Product?>().firstWhere((p) => p?.id == item['productId'], orElse: () => null);
+      return itemSum + (salePrice - (product?.purchasePrice ?? 0)) * quantity;
+    }));
 
     return Scaffold(
       appBar: AppBar(
