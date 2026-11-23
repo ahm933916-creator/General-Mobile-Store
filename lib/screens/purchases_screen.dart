@@ -128,7 +128,22 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
             Row(children: [Expanded(child: TextField(controller: price, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سعر الشراء', border: OutlineInputBorder()))), const SizedBox(width: 8), Expanded(child: TextField(controller: quantity, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'الكمية', border: OutlineInputBorder()))), const SizedBox(width: 8), SizedBox(height: 56, child: ElevatedButton.icon(onPressed: addProduct, icon: const Icon(Icons.add), label: const Text('إضافة المنتج للفاتورة')))]),
             const SizedBox(height: 12),
             const Text('المنتجات المضافة للفاتورة:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            Container(height: 150, decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(6)), child: items.isEmpty ? const Center(child: Text('لم يتم إدراج منتجات في الفاتورة بعد')) : ListView(children: items.asMap().entries.map((entry) => ListTile(title: Text('${entry.key + 1}. ${entry.value['productName']}'), subtitle: Text('الكمية: ${entry.value['quantity']} | السعر: ${currencySettings.value.format((entry.value['price'] as num).toDouble())} | الإجمالي: ${currencySettings.value.format((entry.value['total'] as num).toDouble())}'), trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => setDialogState(() => items.removeAt(entry.key)))).toList())),
+            Container(
+              height: 150,
+              decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(6)),
+              child: items.isEmpty
+                  ? const Center(child: Text('لم يتم إدراج منتجات في الفاتورة بعد'))
+                  : ListView(
+                      children: items.asMap().entries.map((entry) {
+                        final item = entry.value;
+                        return ListTile(
+                          title: Text('${entry.key + 1}. ${item['productName']}'),
+                          subtitle: Text('الكمية: ${item['quantity']} | السعر: ${currencySettings.value.format((item['price'] as num).toDouble())} | الإجمالي: ${currencySettings.value.format((item['total'] as num).toDouble())}'),
+                          trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => setDialogState(() => items.removeAt(entry.key))),
+                        );
+                      }).toList(),
+                    ),
+            ),
             const SizedBox(height: 12),
             Row(children: [Expanded(child: Text('مجموع الفاتورة: ${currencySettings.value.format(total)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))), Expanded(child: TextField(controller: paid, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'الدفعة الواصلة', border: OutlineInputBorder()), onChanged: (_) => setDialogState(() => paidManually = true))), Expanded(child: Text('الديون المتبقية: ${currencySettings.value.format(debt)}', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 15)))])
           ]))),
@@ -142,7 +157,48 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
   }
 
   void _showTablePreview() {
-    showDialog<void>(context: context, builder: (dialogContext) => AlertDialog(title: const Text('معاينة جدول المشتريات'), content: SizedBox(width: 760, child: SingleChildScrollView(child: RepaintBoundary(key: _tableKey, child: Container(color: Colors.white, padding: const EdgeInsets.all(12), child: Directionality(textDirection: TextDirection.rtl, child: Table(border: TableBorder.all(color: Colors.grey), children: [const TableRow(decoration: BoxDecoration(color: Color(0xFF7B2FA0)), children: [Padding(padding: EdgeInsets.all(6), child: Text('الفاتورة', style: TextStyle(color: Colors.white))), Padding(padding: EdgeInsets.all(6), child: Text('التاريخ', style: TextStyle(color: Colors.white))), Padding(padding: EdgeInsets.all(6), child: Text('المورد', style: TextStyle(color: Colors.white))), Padding(padding: EdgeInsets.all(6), child: Text('الإجمالي', style: TextStyle(color: Colors.white)))]), ...invoices.map((i) => TableRow(children: [Padding(padding: const EdgeInsets.all(6), child: Text('${i['invoiceNumber']}')), Padding(padding: const EdgeInsets.all(6), child: Text('${i['date']}')), Padding(padding: const EdgeInsets.all(6), child: Text('${i['supplierName'] ?? 'مورد'}')), Padding(padding: const EdgeInsets.all(6), child: Text(formatStoredAmount((i['totalAmount'] as num).toDouble(), code: i['currencyCode']?.toString(), rate: (i['exchangeRate'] as num?)?.toDouble())))]))]))))), actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إغلاق'))]));
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('معاينة جدول المشتريات'),
+        content: SizedBox(
+          width: 760,
+          child: SingleChildScrollView(
+            child: RepaintBoundary(
+              key: _tableKey,
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(12),
+                child: Directionality(
+                  textDirection: TextDirection.rtl,
+                  child: Table(
+                    border: TableBorder.all(color: Colors.grey),
+                    children: [
+                      const TableRow(
+                        decoration: BoxDecoration(color: Color(0xFF7B2FA0)),
+                        children: [
+                          Padding(padding: EdgeInsets.all(6), child: Text('الفاتورة', style: TextStyle(color: Colors.white))),
+                          Padding(padding: EdgeInsets.all(6), child: Text('التاريخ', style: TextStyle(color: Colors.white))),
+                          Padding(padding: EdgeInsets.all(6), child: Text('المورد', style: TextStyle(color: Colors.white))),
+                          Padding(padding: EdgeInsets.all(6), child: Text('الإجمالي', style: TextStyle(color: Colors.white))),
+                        ],
+                      ),
+                      ...invoices.map((i) => TableRow(children: [
+                        Padding(padding: const EdgeInsets.all(6), child: Text('${i['invoiceNumber']}')),
+                        Padding(padding: const EdgeInsets.all(6), child: Text('${i['date']}')),
+                        Padding(padding: const EdgeInsets.all(6), child: Text('${i['supplierName'] ?? 'مورد'}')),
+                        Padding(padding: const EdgeInsets.all(6), child: Text(formatStoredAmount((i['totalAmount'] as num).toDouble(), code: i['currencyCode']?.toString(), rate: (i['exchangeRate'] as num?)?.toDouble())),
+                      ])),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إغلاق'))],
+      ),
+    );
   }
 
   @override
