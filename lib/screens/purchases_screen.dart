@@ -17,9 +17,38 @@ class PurchasesScreen extends StatefulWidget {
 class _PurchasesScreenState extends State<PurchasesScreen> {
   List invoices = [], products = [], suppliers = [];
   final GlobalKey _tableKey = GlobalKey();
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String? _dateFilterType;
+  String? _specificDate;
+  String? _startDate;
+  String? _endDate;
 
   @override
   void initState() { super.initState(); load(); }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List _filteredInvoices() {
+    final query = _searchQuery.trim().toLowerCase();
+    return invoices.where((invoice) {
+      final number = invoice['invoiceNumber']?.toString().toLowerCase() ?? '';
+      final supplier = invoice['supplierName']?.toString().toLowerCase() ?? '';
+      final date = invoice['date']?.toString() ?? '';
+      final matchesSearch = query.isEmpty || number.contains(query) || supplier.contains(query);
+      var matchesDate = true;
+      if (_dateFilterType == 'specific' && _specificDate != null) {
+        matchesDate = date == _specificDate;
+      } else if (_dateFilterType == 'range' && _startDate != null && _endDate != null) {
+        matchesDate = date.compareTo(_startDate!) >= 0 && date.compareTo(_endDate!) <= 0;
+      }
+      return matchesSearch && matchesDate;
+    }).toList();
+  }
 
   Future<void> load() async {
     final values = await Future.wait([
@@ -157,6 +186,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
   }
 
   void _showTablePreview() {
+    final visibleInvoices = _filteredInvoices();
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -183,7 +213,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                           Padding(padding: EdgeInsets.all(6), child: Text('الإجمالي', style: TextStyle(color: Colors.white))),
                         ],
                       ),
-                      ...invoices.map((i) => TableRow(children: [
+                      ...visibleInvoices.map((i) => TableRow(children: [
                         Padding(padding: const EdgeInsets.all(6), child: Text('${i['invoiceNumber']}')),
                         Padding(padding: const EdgeInsets.all(6), child: Text('${i['date']}')),
                         Padding(padding: const EdgeInsets.all(6), child: Text('${i['supplierName'] ?? 'مورد'}')),
@@ -203,9 +233,73 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final total = invoices.fold<double>(0, (sum, i) => sum + convertStoredAmount((i['totalAmount'] as num).toDouble(), code: i['currencyCode']?.toString(), rate: (i['exchangeRate'] as num?)?.toDouble()));
-    final debt = invoices.fold<double>(0, (sum, i) => sum + convertStoredAmount((i['remainingDebt'] as num).toDouble(), code: i['currencyCode']?.toString(), rate: (i['exchangeRate'] as num?)?.toDouble()));
-    return Scaffold(appBar: AppBar(title: const Text('المشتريات'), actions: [TextButton.icon(style: TextButton.styleFrom(foregroundColor: Colors.white), icon: const Icon(Icons.table_chart), label: const Text('معاينة الجدول'), onPressed: _showTablePreview), TextButton.icon(style: TextButton.styleFrom(foregroundColor: Colors.white), icon: const Icon(Icons.people), label: const Text('الموردون'), onPressed: () async { await Navigator.push(context, MaterialPageRoute(builder: (_) => const SuppliersScreen())); load(); }), IconButton(icon: const Icon(Icons.refresh), onPressed: load)]), floatingActionButton: FloatingActionButton(onPressed: createInvoice, child: const Icon(Icons.add)), body: Column(children: [Padding(padding: const EdgeInsets.all(8), child: Row(children: [Expanded(child: _stat('مجموع المشتريات', total, Colors.blue)), Expanded(child: _stat('الأرباح', 0, Colors.green)), Expanded(child: _stat('الديون', debt, Colors.red)), Expanded(child: _stat('الصافي', total - debt, Colors.orange))])), Expanded(child: invoices.isEmpty ? const Center(child: Text('لا توجد فواتير مشتريات')) : ListView.builder(itemCount: invoices.length, itemBuilder: (context, index) { final i = invoices[index]; final code = i['currencyCode']?.toString(); final rate = (i['exchangeRate'] as num?)?.toDouble(); return Card(child: ListTile(title: Text('فاتورة ${i['invoiceNumber']} | ${i['supplierName'] ?? 'مورد'}'), subtitle: Text('${i['date']}\nالإجمالي: ${formatStoredAmount((i['totalAmount'] as num).toDouble(), code: code, rate: rate)} | الدين: ${formatStoredAmount((i['remainingDebt'] as num).toDouble(), code: code, rate: rate)}'), isThreeLine: true, trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () async { await DatabaseHelper.instance.deletePurchaseInvoice(i['id']); load(); }))); }))]));
+    final visibleInvoices = _filteredInvoices();
+    final total = visibleInvoices.fold<double>(0, (sum, i) => sum + convertStoredAmount((i['totalAmount'] as num).toDouble(), code: i['currencyCode']?.toString(), rate: (i['exchangeRate'] as num?)?.toDouble()));
+    final debt = visibleInvoices.fold<double>(0, (sum, i) => sum + convertStoredAmount((i['remainingDebt'] as num).toDouble(), code: i['currencyCode']?.toString(), rate: (i['exchangeRate'] as num?)?.toDouble()));
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('المشتريات'),
+        actions: [
+          TextButton.icon(style: TextButton.styleFrom(foregroundColor: Colors.white), icon: const Icon(Icons.table_chart), label: const Text('معاينة الجدول'), onPressed: _showTablePreview),
+          TextButton.icon(style: TextButton.styleFrom(foregroundColor: Colors.white), icon: const Icon(Icons.people), label: const Text('الموردون'), onPressed: () async { await Navigator.push(context, MaterialPageRoute(builder: (_) => const SuppliersScreen())); load(); }),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: load),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(onPressed: createInvoice, child: const Icon(Icons.add)),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+            child: TextField(
+              controller: _searchController,
+              decoration: const InputDecoration(labelText: 'بحث برقم الفاتورة أو اسم المورد...', prefixIcon: Icon(Icons.search), border: OutlineInputBorder()),
+              onChanged: (value) => setState(() => _searchQuery = value),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: Row(
+              children: [
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.calendar_month),
+                  label: const Text('يوم محدد'),
+                  onPressed: () async {
+                    final picked = await showDatePicker(context: context, initialDate: DateTime.now(), firstDate: DateTime(2020), lastDate: DateTime(2100));
+                    if (picked != null) setState(() { _dateFilterType = 'specific'; _specificDate = picked.toIso8601String().split('T').first; _startDate = null; _endDate = null; });
+                  },
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.date_range),
+                  label: const Text('بين تاريخين'),
+                  onPressed: () async {
+                    final picked = await showDateRangePicker(context: context, firstDate: DateTime(2020), lastDate: DateTime(2100));
+                    if (picked != null) setState(() { _dateFilterType = 'range'; _startDate = picked.start.toIso8601String().split('T').first; _endDate = picked.end.toIso8601String().split('T').first; _specificDate = null; });
+                  },
+                ),
+                if (_dateFilterType != null) TextButton(onPressed: () => setState(() { _dateFilterType = null; _specificDate = null; _startDate = null; _endDate = null; }), child: const Text('إلغاء الفلتر')),
+              ],
+            ),
+          ),
+          if (_dateFilterType != null)
+            Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Align(alignment: Alignment.centerRight, child: Text(_dateFilterType == 'specific' ? 'التاريخ المختار: $_specificDate' : 'الفترة: من $_startDate إلى $_endDate', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF9C3FC1)))),
+          Padding(padding: const EdgeInsets.all(8), child: Row(children: [Expanded(child: _stat('مجموع المشتريات', total, Colors.blue)), Expanded(child: _stat('الأرباح', 0, Colors.green)), Expanded(child: _stat('الديون', debt, Colors.red)), Expanded(child: _stat('الصافي', total - debt, Colors.orange))])),
+          Expanded(
+            child: visibleInvoices.isEmpty
+                ? const Center(child: Text('لا توجد فواتير مشتريات مطابقة'))
+                : ListView.builder(
+                    itemCount: visibleInvoices.length,
+                    itemBuilder: (context, index) {
+                      final invoice = visibleInvoices[index];
+                      final code = invoice['currencyCode']?.toString();
+                      final rate = (invoice['exchangeRate'] as num?)?.toDouble();
+                      return Card(child: ListTile(title: Text('فاتورة ${invoice['invoiceNumber']} | ${invoice['supplierName'] ?? 'مورد'}'), subtitle: Text('${invoice['date']}\nالإجمالي: ${formatStoredAmount((invoice['totalAmount'] as num).toDouble(), code: code, rate: rate)} | الدين: ${formatStoredAmount((invoice['remainingDebt'] as num).toDouble(), code: code, rate: rate)}'), isThreeLine: true, trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () async { await DatabaseHelper.instance.deletePurchaseInvoice(invoice['id']); load(); })));
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _stat(String label, double value, Color color) => Card(child: Padding(padding: const EdgeInsets.all(6), child: Column(children: [Text(label, style: TextStyle(color: color, fontSize: 11)), ValueListenableBuilder(valueListenable: currencySettings, builder: (_, __, ___) => Text(currencySettings.value.format(value), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)))])));
