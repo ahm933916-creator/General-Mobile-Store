@@ -187,7 +187,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                         Padding(padding: const EdgeInsets.all(6), child: Text('${i['invoiceNumber']}')),
                         Padding(padding: const EdgeInsets.all(6), child: Text('${i['date']}')),
                         Padding(padding: const EdgeInsets.all(6), child: Text('${i['supplierName'] ?? 'مورد'}')),
-                        Padding(padding: const EdgeInsets.all(6), child: Text(formatStoredAmount((i['totalAmount'] as num).toDouble(), code: i['currencyCode']?.toString(), rate: (i['exchangeRate'] as num?)?.toDouble())),
+                        Padding(padding: const EdgeInsets.all(6), child: Text(formatStoredAmount((i['totalAmount'] as num).toDouble(), code: i['currencyCode']?.toString(), rate: (i['exchangeRate'] as num?)?.toDouble()))),
                       ])),
                     ],
                   ),
