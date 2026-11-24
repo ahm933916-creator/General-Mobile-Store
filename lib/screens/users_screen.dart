@@ -168,6 +168,7 @@ class _UsersScreenState extends State<UsersScreen> {
     final nameCtrl = TextEditingController(text: isEditing ? userToEdit.name : '');
     final phoneCtrl = TextEditingController(text: isEditing ? userToEdit.phone : '');
     final addressCtrl = TextEditingController(text: isEditing ? (userToEdit.address ?? '') : '');
+    final passwordCtrl = TextEditingController(text: isEditing ? userToEdit.password : '');
 
     showDialog(
       context: context,
@@ -185,6 +186,8 @@ class _UsersScreenState extends State<UsersScreen> {
               TextField(controller: phoneCtrl, decoration: const InputDecoration(labelText: 'رقم الهاتف', border: OutlineInputBorder()), keyboardType: TextInputType.phone),
               const SizedBox(height: 10),
               TextField(controller: addressCtrl, decoration: const InputDecoration(labelText: 'العنوان', border: OutlineInputBorder())),
+              const SizedBox(height: 10),
+              TextField(controller: passwordCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'كلمة المرور (اختياري)', border: OutlineInputBorder())),
             ],
           ),
         ),
@@ -201,6 +204,7 @@ class _UsersScreenState extends State<UsersScreen> {
                 name: nameCtrl.text.trim(),
                 phone: phoneCtrl.text.trim(),
                 address: addressCtrl.text.trim(),
+                password: passwordCtrl.text,
               );
 
               if (isEditing) {

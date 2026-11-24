@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'screens/home_screen.dart';
+import 'screens/login_screen.dart';
 import 'theme_controller.dart';
 import 'currency_controller.dart';
 
@@ -118,7 +119,7 @@ class MyApp extends StatelessWidget {
         themeMode: mode,
         theme: _buildTheme(dark: false, isPhone: isPhone),
         darkTheme: _buildTheme(dark: true, isPhone: isPhone),
-        home: const HomeScreen(),
+        home: const LoginScreen(),
       ),
     );
   }

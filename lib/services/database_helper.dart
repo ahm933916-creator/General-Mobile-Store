@@ -20,7 +20,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 10, // سجل العملة وتحويل أسعار المنتجات
+      version: 12, // الحسابات والطلبات
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -33,9 +33,21 @@ class DatabaseHelper {
         code TEXT NOT NULL UNIQUE,
         name TEXT NOT NULL UNIQUE,
         phone TEXT NOT NULL UNIQUE,
-        address TEXT
+        address TEXT,
+        password TEXT NOT NULL DEFAULT ''
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE app_accounts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL UNIQUE,
+        password TEXT NOT NULL,
+        role TEXT NOT NULL,
+        displayName TEXT NOT NULL
+      )
+    ''');
+    await _seedDefaultAccounts(db);
 
     await db.execute('''
       CREATE TABLE categories (
@@ -169,6 +181,29 @@ class DatabaseHelper {
         FOREIGN KEY (productId) REFERENCES products (id) ON DELETE CASCADE
       )
     ''');
+    await _createOrdersTables(db);
+  }
+
+  Future<void> _seedDefaultAccounts(Database db) async {
+    for (final account in [
+      {'username': 'خالد', 'password': '123', 'role': 'manager', 'displayName': 'المدير العام'},
+      {'username': 'علي', 'password': '456', 'role': 'accountant', 'displayName': 'المحاسب'},
+      {'username': 'اسامة', 'password': '789', 'role': 'customer', 'displayName': 'المستخدم'},
+    ]) {
+      await db.insert('app_accounts', account, conflictAlgorithm: ConflictAlgorithm.ignore);
+    }
+  }
+
+  Future<void> _createOrdersTables(Database db) async {
+    await db.execute('''CREATE TABLE IF NOT EXISTS orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, userId INTEGER, customerName TEXT NOT NULL,
+      phone TEXT NOT NULL, address TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending',
+      totalAmount REAL NOT NULL, currencyCode TEXT NOT NULL DEFAULT 'SYP',
+      exchangeRate REAL NOT NULL DEFAULT 1, createdAt TEXT NOT NULL)''');
+    await db.execute('''CREATE TABLE IF NOT EXISTS order_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, orderId INTEGER NOT NULL, productId INTEGER,
+      productName TEXT NOT NULL, price REAL NOT NULL, quantity INTEGER NOT NULL, total REAL NOT NULL,
+      FOREIGN KEY (orderId) REFERENCES orders (id) ON DELETE CASCADE)''');
   }
 
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
@@ -246,6 +281,15 @@ class DatabaseHelper {
       ]) { try { await db.execute(statement); } catch (_) {} }
     }
 
+    if (oldVersion < 11) {
+      try { await db.execute("ALTER TABLE users ADD COLUMN password TEXT NOT NULL DEFAULT ''"); } catch (_) {}
+      await db.execute('''CREATE TABLE IF NOT EXISTS app_accounts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE,
+        password TEXT NOT NULL, role TEXT NOT NULL, displayName TEXT NOT NULL)''');
+      await _seedDefaultAccounts(db);
+    }
+    if (oldVersion < 12) await _createOrdersTables(db);
+
     if (oldVersion < 9) {
       try { await db.execute('CREATE INDEX IF NOT EXISTS idx_purchase_items_invoice ON purchase_items(invoiceId)'); } catch (_) {}
     }
@@ -273,6 +317,27 @@ class DatabaseHelper {
     final db = await database;
     final result = await db.query('users');
     return result.map((json) => AppUser.fromMap(json)).toList();
+  }
+
+  Future<Map<String, dynamic>?> authenticateAccount(String username, String password) async {
+    final rows = await (await database).query('app_accounts', where: 'username = ? AND password = ?', whereArgs: [username.trim(), password]);
+    return rows.isEmpty ? null : Map<String, dynamic>.from(rows.first);
+  }
+
+  Future<AppUser?> authenticateCustomer(String username, String password) async {
+    final rows = await (await database).query('users', where: 'name = ? AND password = ?', whereArgs: [username.trim(), password]);
+    return rows.isEmpty ? null : AppUser.fromMap(rows.first);
+  }
+
+  Future<int> saveCustomer({required String username, required String password, required String phone, required String address}) async {
+    final db = await database;
+    final existing = await db.query('users', where: 'name = ?', whereArgs: [username.trim()]);
+    if (existing.isNotEmpty) {
+      final id = existing.first['id'] as int;
+      await db.update('users', {'password': password, 'phone': phone, 'address': address}, where: 'id = ?', whereArgs: [id]);
+      return id;
+    }
+    return db.insert('users', AppUser(code: 'CUS-${DateTime.now().millisecondsSinceEpoch}', name: username.trim(), phone: phone.trim(), address: address.trim(), password: password).toMap());
   }
 
   Future<int> updateUser(AppUser user) async {
@@ -305,6 +370,31 @@ class DatabaseHelper {
   }
 
   Future<void> updateUserTotalDebtDirectly(int userId, double newTotalDebt) async {}
+
+  Future<List<Map<String, dynamic>>> getOrders({int? userId}) async {
+    final db = await database;
+    final orders = await db.query('orders', where: userId == null ? null : 'userId = ?', whereArgs: userId == null ? null : [userId], orderBy: 'id DESC');
+    final result = <Map<String, dynamic>>[];
+    for (final order in orders) {
+      final row = Map<String, dynamic>.from(order);
+      row['items'] = await db.query('order_items', where: 'orderId = ?', whereArgs: [order['id']]);
+      result.add(row);
+    }
+    return result;
+  }
+
+  Future<int> insertOrder(Map<String, dynamic> order, List<Map<String, dynamic>> items) async {
+    final db = await database;
+    return db.transaction((txn) async {
+      final orderId = await txn.insert('orders', order);
+      for (final item in items) {
+        await txn.insert('order_items', {...item, 'orderId': orderId});
+      }
+      return orderId;
+    });
+  }
+
+  Future<int> updateOrderStatus(int orderId, String status) async => (await database).update('orders', {'status': status}, where: 'id = ?', whereArgs: [orderId]);
 
   // ==================== الموردون ====================
   Future<int> insertSupplier(Supplier supplier) async => (await database).insert('suppliers', supplier.toMap());

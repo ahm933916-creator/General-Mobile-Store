@@ -87,6 +87,7 @@ class AppUser {
   final String name;
   final String phone;
   final String? address;
+  final String password;
 
   AppUser({
     this.id,
@@ -94,6 +95,7 @@ class AppUser {
     required this.name,
     required this.phone,
     this.address,
+    this.password = '',
   });
 
   Map<String, dynamic> toMap() {
@@ -103,6 +105,7 @@ class AppUser {
       'name': name,
       'phone': phone,
       'address': address,
+      'password': password,
     };
   }
 
@@ -113,6 +116,7 @@ class AppUser {
       name: map['name'] ?? '',
       phone: map['phone'] ?? '',
       address: map['address'],
+      password: map['password']?.toString() ?? '',
     );
   }
 }
