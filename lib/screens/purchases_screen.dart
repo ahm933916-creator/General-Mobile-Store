@@ -138,7 +138,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
 
         return AlertDialog(
           title: const Text('إنشاء فاتورة مشتريات جديدة', textDirection: TextDirection.rtl, style: TextStyle(color: Color(0xFF9C3FC1), fontWeight: FontWeight.bold)),
-          content: SizedBox(width: 850, child: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          content: SizedBox(width: MediaQuery.sizeOf(context).width * 0.92, child: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             TextField(controller: number, readOnly: true, decoration: const InputDecoration(labelText: 'رقم الفاتورة', border: OutlineInputBorder())),
             const SizedBox(height: 10),
             TextField(controller: TextEditingController(text: DateTime.now().toIso8601String().split('T').first), readOnly: true, decoration: const InputDecoration(labelText: 'تاريخ الفاتورة', border: OutlineInputBorder())),
@@ -154,7 +154,11 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
             const Divider(height: 30, thickness: 2),
             DropdownButtonFormField<Product>(initialValue: selectedProduct, hint: const Text('المنتج المحدد'), isExpanded: true, items: products.cast<Product>().map((p) => DropdownMenuItem(value: p, child: Text('${p.name} (المخزون ${p.quantity})'))).toList(), onChanged: (v) { if (v != null) choose(v); }, decoration: const InputDecoration(border: OutlineInputBorder())),
             const SizedBox(height: 10),
-            Row(children: [Expanded(child: TextField(controller: price, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سعر الشراء', border: OutlineInputBorder()))), const SizedBox(width: 8), Expanded(child: TextField(controller: quantity, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'الكمية', border: OutlineInputBorder()))), const SizedBox(width: 8), SizedBox(height: 56, child: ElevatedButton.icon(onPressed: addProduct, icon: const Icon(Icons.add), label: const Text('إضافة المنتج للفاتورة')))]),
+            TextField(controller: price, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سعر الشراء', border: OutlineInputBorder())),
+            const SizedBox(height: 10),
+            TextField(controller: quantity, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'الكمية', border: OutlineInputBorder())),
+            const SizedBox(height: 10),
+            SizedBox(height: 52, child: ElevatedButton.icon(onPressed: addProduct, icon: const Icon(Icons.add), label: const Text('إضافة المنتج للفاتورة'))),
             const SizedBox(height: 12),
             const Text('المنتجات المضافة للفاتورة:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             Container(
@@ -174,7 +178,16 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                     ),
             ),
             const SizedBox(height: 12),
-            Row(children: [Expanded(child: Text('مجموع الفاتورة: ${currencySettings.value.format(total)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))), Expanded(child: TextField(controller: paid, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'الدفعة الواصلة', border: OutlineInputBorder()), onChanged: (_) => setDialogState(() => paidManually = true))), Expanded(child: Text('الديون المتبقية: ${currencySettings.value.format(debt)}', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 15)))])
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('مجموع الفاتورة: ${currencySettings.value.format(total)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                const SizedBox(height: 10),
+                TextField(controller: paid, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'الدفعة الواصلة', border: OutlineInputBorder()), onChanged: (_) => setDialogState(() => paidManually = true)),
+                const SizedBox(height: 10),
+                Text('الديون المتبقية: ${currencySettings.value.format(debt)}', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 15)),
+              ],
+            )
           ]))),
           actions: [
             TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء', style: TextStyle(color: Color(0xFF9C3FC1)))),

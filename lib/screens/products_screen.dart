@@ -602,13 +602,24 @@ class _ProductsScreenState extends State<ProductsScreen> {
               onChanged: (val) => setState(() => _searchQuery = val),
             ),
             const SizedBox(height: 10),
-            Row(children: [
-              Expanded(child: DropdownButtonFormField<int>(value: _inventoryCategoryId, items: [const DropdownMenuItem<int>(value: null, child: Text('الجرد حسب كل الأصناف')), ..._categories.map((c) => DropdownMenuItem(value: c.id, child: Text('جرد: ${c.name}')))], onChanged: (v) => setState(() => _inventoryCategoryId = v), decoration: const InputDecoration(labelText: 'الجرد حسب الصنف'))),
-              const SizedBox(width: 8),
-              Expanded(child: _inventoryCard('مجموع المنتجات', filteredProducts.fold<int>(0, (sum, p) => sum + ((p['quantity'] as num?)?.toInt() ?? 0)), Icons.inventory_2)),
-              const SizedBox(width: 8),
-                              Expanded(child: _inventoryCard('السعر الكامل', filteredProducts.fold<double>(0, (sum, p) => sum + (((p['quantity'] as num?)?.toDouble() ?? 0) * ((p['sellingPrice'] as num?)?.toDouble() ?? 0)),), Icons.payments)),
-            ]),
+            DropdownButtonFormField<int>(
+              value: _inventoryCategoryId,
+              items: [
+                const DropdownMenuItem<int>(value: null, child: Text('الجرد حسب كل الأصناف')),
+                ..._categories.map((c) => DropdownMenuItem(value: c.id, child: Text('جرد: ${c.name}'))),
+              ],
+              onChanged: (v) => setState(() => _inventoryCategoryId = v),
+              decoration: const InputDecoration(labelText: 'الجرد حسب الصنف', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: _inventoryCard('مجموع المنتجات', filteredProducts.fold<int>(0, (sum, p) => sum + ((p['quantity'] as num?)?.toInt() ?? 0)), Icons.inventory_2)),
+                const SizedBox(width: 8),
+                Expanded(child: _inventoryCard('السعر الكامل', filteredProducts.fold<double>(0, (sum, p) => sum + (((p['quantity'] as num?)?.toDouble() ?? 0) * ((p['sellingPrice'] as num?)?.toDouble() ?? 0))), Icons.payments)),
+              ],
+            ),
             const SizedBox(height: 10),
             Expanded(
               child: filteredProducts.isEmpty
@@ -696,5 +707,19 @@ class _ProductsScreenState extends State<ProductsScreen> {
     );
   }
 
-  Widget _inventoryCard(String title, num value, IconData icon) => Card(child: Padding(padding: const EdgeInsets.all(7), child: Row(children: [Icon(icon, size: 18, color: const Color(0xFF9C3FC1)), const SizedBox(width: 4), Expanded(child: Text('$title\n${value.toStringAsFixed(0)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis))])));
+  Widget _inventoryCard(String title, num value, IconData icon) => Card(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 20, color: const Color(0xFF9C3FC1)),
+              const SizedBox(height: 3),
+              Text(title, textAlign: TextAlign.center, maxLines: 2, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 2),
+              FittedBox(fit: BoxFit.scaleDown, child: Text(value.toStringAsFixed(0), maxLines: 1, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF7B2FA0)))),
+            ],
+          ),
+        ),
+      );
 }
