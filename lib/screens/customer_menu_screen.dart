@@ -59,19 +59,36 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
     final phone = TextEditingController(text: customer?.phone ?? '');
     final address = TextEditingController(text: customer?.address ?? '');
     final formKey = GlobalKey<FormState>();
-    final confirmed = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(
-      title: const Text('بيانات العميل لتأكيد الطلب'),
-      content: SizedBox(width: 430, child: Form(key: formKey, child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        TextFormField(controller: name, decoration: const InputDecoration(labelText: 'اسم المستخدم'), validator: (v) => v == null || v.trim().isEmpty ? 'أدخل اسم المستخدم' : null),
-        const SizedBox(height: 10),
-        TextFormField(controller: password, obscureText: true, decoration: const InputDecoration(labelText: 'كلمة المرور'), validator: (v) => v == null || v.length < 3 ? 'كلمة المرور قصيرة' : null),
-        const SizedBox(height: 10),
-        TextFormField(controller: phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'رقم الهاتف'), validator: (v) => v == null || v.trim().isEmpty ? 'أدخل رقم الهاتف' : null),
-        const SizedBox(height: 10),
-        TextFormField(controller: address, maxLines: 2, decoration: const InputDecoration(labelText: 'عنوان التوصيل'), validator: (v) => v == null || v.trim().isEmpty ? 'أدخل عنوان التوصيل' : null),
-      ]))),
-      actions: [TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('إلغاء')), ElevatedButton(onPressed: () { if (formKey.currentState!.validate()) Navigator.pop(dialogContext, true); }, child: const Text('تأكيد الطلب'))],
-    ));
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('بيانات العميل لتأكيد الطلب'),
+        content: SizedBox(
+          width: 430,
+          child: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(controller: name, decoration: const InputDecoration(labelText: 'اسم المستخدم'), validator: (v) => v == null || v.trim().isEmpty ? 'أدخل اسم المستخدم' : null),
+                  const SizedBox(height: 10),
+                  TextFormField(controller: password, obscureText: true, decoration: const InputDecoration(labelText: 'كلمة المرور'), validator: (v) => v == null || v.length < 3 ? 'كلمة المرور قصيرة' : null),
+                  const SizedBox(height: 10),
+                  TextFormField(controller: phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'رقم الهاتف'), validator: (v) => v == null || v.trim().isEmpty ? 'أدخل رقم الهاتف' : null),
+                  const SizedBox(height: 10),
+                  TextFormField(controller: address, maxLines: 2, decoration: const InputDecoration(labelText: 'عنوان التوصيل'), validator: (v) => v == null || v.trim().isEmpty ? 'أدخل عنوان التوصيل' : null),
+                ],
+              ),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('إلغاء')),
+          ElevatedButton(onPressed: () { if (formKey.currentState!.validate()) Navigator.pop(dialogContext, true); }, child: const Text('تأكيد الطلب')),
+        ],
+      ),
+    );
     if (confirmed != true) return;
     final userId = await DatabaseHelper.instance.saveCustomer(username: name.text, password: password.text, phone: phone.text, address: address.text);
     customer = AppUser(id: userId, code: 'CUS-$userId', name: name.text.trim(), password: password.text, phone: phone.text.trim(), address: address.text.trim());
