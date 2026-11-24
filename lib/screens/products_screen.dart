@@ -13,6 +13,7 @@ import '../services/image_storage_service.dart';
 import '../currency_controller.dart';
 import 'categories_screen.dart';
 import 'barcode_scanner_screen.dart';
+import 'product_map_screen.dart';
 
 class ProductsScreen extends StatefulWidget {
   const ProductsScreen({super.key});
@@ -28,6 +29,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   int? _inventoryCategoryId;
+  String _inventorySort = 'default';
   final GlobalKey _tablePreviewKey = GlobalKey(); // مفتاح الجدول المخصص للمعاينة والحفظ
 
   @override
@@ -245,6 +247,23 @@ class _ProductsScreenState extends State<ProductsScreen> {
       return null;
     }
     return Navigator.push<String>(context, MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()));
+  }
+
+  Future<void> _searchWithCamera() async {
+    final code = await _scanBarcodeWithCamera();
+    if (code == null || code.trim().isEmpty) return;
+    _searchController.text = code.trim();
+    if (mounted) setState(() => _searchQuery = code.trim());
+  }
+
+  Future<void> _searchFromProductMap() async {
+    final product = await Navigator.push<Product>(
+      context,
+      MaterialPageRoute(builder: (_) => ProductMapScreen(products: _productsWithCat.map((item) => Product.fromMap(Map<String, dynamic>.from(item))).toList())),
+    );
+    if (product == null || !mounted) return;
+    _searchController.text = product.code;
+    setState(() => _searchQuery = product.code);
   }
 
   Future<String?> _readBarcodeFromImage(String path) async {
@@ -559,6 +578,21 @@ class _ProductsScreenState extends State<ProductsScreen> {
       final query = _searchQuery.toLowerCase();
       return (_inventoryCategoryId == null || prod['categoryId'] == _inventoryCategoryId) && (name.contains(query) || code.contains(query));
     }).toList();
+    filteredProducts.sort((a, b) {
+      num value(Map item, String key) => (item[key] as num?) ?? 0;
+      switch (_inventorySort) {
+        case 'priceAsc':
+          return value(a, 'sellingPrice').compareTo(value(b, 'sellingPrice'));
+        case 'priceDesc':
+          return value(b, 'sellingPrice').compareTo(value(a, 'sellingPrice'));
+        case 'quantityAsc':
+          return value(a, 'quantity').compareTo(value(b, 'quantity'));
+        case 'quantityDesc':
+          return value(b, 'quantity').compareTo(value(a, 'quantity'));
+        default:
+          return 0;
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -596,19 +630,35 @@ class _ProductsScreenState extends State<ProductsScreen> {
         padding: const EdgeInsets.all(12.0),
         child: Column(
           children: [
-            TextField(
-              controller: _searchController,
-              decoration: const InputDecoration(labelText: 'بحث بالاسم أو الكود...', prefixIcon: Icon(Icons.search), border: OutlineInputBorder()),
-              onChanged: (val) => setState(() => _searchQuery = val),
+            Row(
+              children: [
+                Expanded(child: _inventoryCard('مجموع المنتجات', filteredProducts.fold<int>(0, (sum, p) => sum + ((p['quantity'] as num?)?.toInt() ?? 0)), Icons.inventory_2)),
+                const SizedBox(width: 8),
+                Expanded(child: _inventoryCard('السعر الكامل', filteredProducts.fold<double>(0, (sum, p) => sum + (((p['quantity'] as num?)?.toDouble() ?? 0) * ((p['sellingPrice'] as num?)?.toDouble() ?? 0))), Icons.payments)),
+              ],
             ),
             const SizedBox(height: 10),
-            Row(children: [
-              Expanded(child: DropdownButtonFormField<int>(value: _inventoryCategoryId, items: [const DropdownMenuItem<int>(value: null, child: Text('الجرد حسب كل الأصناف')), ..._categories.map((c) => DropdownMenuItem(value: c.id, child: Text('جرد: ${c.name}')))], onChanged: (v) => setState(() => _inventoryCategoryId = v), decoration: const InputDecoration(labelText: 'الجرد حسب الصنف'))),
-              const SizedBox(width: 8),
-              Expanded(child: _inventoryCard('مجموع المنتجات', filteredProducts.fold<int>(0, (sum, p) => sum + ((p['quantity'] as num?)?.toInt() ?? 0)), Icons.inventory_2)),
-              const SizedBox(width: 8),
-                              Expanded(child: _inventoryCard('السعر الكامل', filteredProducts.fold<double>(0, (sum, p) => sum + (((p['quantity'] as num?)?.toDouble() ?? 0) * ((p['sellingPrice'] as num?)?.toDouble() ?? 0)),), Icons.payments)),
-            ]),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: const InputDecoration(labelText: 'بحث بالاسم أو الكود...', prefixIcon: Icon(Icons.search), border: OutlineInputBorder()),
+                    onChanged: (val) => setState(() => _searchQuery = val),
+                  ),
+                ),
+                IconButton(tooltip: 'خريطة المنتجات', icon: const Icon(Icons.grid_view, color: Colors.orange), onPressed: _searchFromProductMap),
+                IconButton(tooltip: 'مسح الباركود بالكاميرا', icon: const Icon(Icons.qr_code_scanner, color: Colors.blue), onPressed: _searchWithCamera),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(child: DropdownButtonFormField<int>(value: _inventoryCategoryId, items: [const DropdownMenuItem<int>(value: null, child: Text('الجرد حسب كل الأصناف')), ..._categories.map((c) => DropdownMenuItem(value: c.id, child: Text('جرد: ${c.name}')))], onChanged: (v) => setState(() => _inventoryCategoryId = v), decoration: const InputDecoration(labelText: 'الجرد حسب الصنف', border: OutlineInputBorder()))),
+                const SizedBox(width: 8),
+                Expanded(child: DropdownButtonFormField<String>(value: _inventorySort, items: const [DropdownMenuItem(value: 'default', child: Text('الترتيب الافتراضي')), DropdownMenuItem(value: 'priceAsc', child: Text('السعر الأقل')), DropdownMenuItem(value: 'priceDesc', child: Text('السعر الأعلى')), DropdownMenuItem(value: 'quantityAsc', child: Text('الكمية الأقل')), DropdownMenuItem(value: 'quantityDesc', child: Text('الكمية الأعلى'))], onChanged: (v) => setState(() => _inventorySort = v ?? 'default'), decoration: const InputDecoration(labelText: 'ترتيب الجرد', border: OutlineInputBorder()))),
+              ],
+            ),
             const SizedBox(height: 10),
             Expanded(
               child: filteredProducts.isEmpty
