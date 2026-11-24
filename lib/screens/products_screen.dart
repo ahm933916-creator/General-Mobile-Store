@@ -304,6 +304,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
     String rentalStatus = isEditing ? productToEdit.rentalStatus : 'متاح';
     String? productImagePath = isEditing ? productToEdit.imagePath : null;
     String? barcodeImagePath = isEditing ? productToEdit.barcodeImagePath : null;
+    List<String> additionalImagePaths = isEditing ? List<String>.from(productToEdit.galleryPaths) : [];
+    String? videoPath = isEditing ? productToEdit.videoPath : null;
 
     if (!isEditing) {
       try {
@@ -354,6 +356,20 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       ),
                     ],
                   ),
+                  const Divider(height: 20),
+                  Row(children: [
+                    Expanded(child: ElevatedButton.icon(icon: const Icon(Icons.collections), label: const Text('صور إضافية للمتجر'), onPressed: () async {
+                      final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['png', 'jpg', 'jpeg'], allowMultiple: true);
+                      if (result != null) setDialogState(() => additionalImagePaths = [...additionalImagePaths, ...result.files.where((f) => f.path != null).map((f) => f.path!)]);
+                    })),
+                    const SizedBox(width: 8),
+                    Expanded(child: ElevatedButton.icon(icon: const Icon(Icons.video_library), label: const Text('فيديو المنتج'), onPressed: () async {
+                      final result = await FilePicker.platform.pickFiles(type: FileType.video);
+                      if (result?.files.single.path != null) setDialogState(() => videoPath = result!.files.single.path);
+                    })),
+                  ]),
+                  if (additionalImagePaths.isNotEmpty) Align(alignment: Alignment.centerRight, child: Text('تم اختيار ${additionalImagePaths.length} صورة فرعية')),
+                  if (videoPath != null) Align(alignment: Alignment.centerRight, child: Text('الفيديو: ${videoPath!.split(Platform.pathSeparator).last}', maxLines: 1, overflow: TextOverflow.ellipsis)),
                   const Divider(height: 20),
                   Row(
                     children: [
@@ -504,6 +520,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
                 String? permanentProductImage;
                 String? permanentBarcodeImage;
+                final permanentAdditionalImages = <String>[];
+                String? permanentVideo;
                 try {
                   permanentProductImage = await ImageStorageService.copyProductAsset(
                     sourcePath: productImagePath,
@@ -519,6 +537,11 @@ class _ProductsScreenState extends State<ProductsScreen> {
                     productName: nameCtrl.text.trim(),
                     suffix: '_barcode',
                   );
+                  for (var i = 0; i < additionalImagePaths.length; i++) {
+                    final saved = await ImageStorageService.copyProductAsset(sourcePath: additionalImagePaths[i], productName: nameCtrl.text.trim(), suffix: '_gallery_$i');
+                    if (saved != null) permanentAdditionalImages.add(saved);
+                  }
+                  permanentVideo = await ImageStorageService.copyProductAsset(sourcePath: videoPath, productName: nameCtrl.text.trim(), suffix: '_video');
                   if (isEditing && productToEdit.name.trim() != nameCtrl.text.trim()) {
                     await ImageStorageService.renameProductDirectory(
                       oldName: productToEdit.name,
@@ -541,6 +564,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   categoryId: selectedCategoryId,
                   imagePath: permanentProductImage ?? productImagePath,
                   barcodeImagePath: permanentBarcodeImage ?? barcodeImagePath,
+                  galleryPaths: permanentAdditionalImages.isEmpty ? (isEditing ? productToEdit.galleryPaths : const []) : permanentAdditionalImages,
+                  videoPath: permanentVideo ?? videoPath,
                   status: selectedStatus,
                   quantity: int.tryParse(quantityCtrl.text) ?? 1,
                   purchasedQuantity: isEditing ? productToEdit.purchasedQuantity : 0,

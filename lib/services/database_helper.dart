@@ -20,7 +20,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 12, // الحسابات والطلبات
+      version: 14, // الحسابات والطلبات ومعرض صور المنتجات
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -65,6 +65,8 @@ class DatabaseHelper {
         categoryId INTEGER,
         imagePath TEXT,
         barcodeImagePath TEXT,
+        galleryPaths TEXT NOT NULL DEFAULT '[]',
+        videoPath TEXT,
         status TEXT NOT NULL,
         quantity INTEGER NOT NULL DEFAULT 1,
         purchasedQuantity INTEGER NOT NULL DEFAULT 0,
@@ -186,9 +188,9 @@ class DatabaseHelper {
 
   Future<void> _seedDefaultAccounts(Database db) async {
     for (final account in [
-      {'username': 'خالد', 'password': '123', 'role': 'manager', 'displayName': 'المدير العام'},
-      {'username': 'علي', 'password': '456', 'role': 'accountant', 'displayName': 'المحاسب'},
-      {'username': 'اسامة', 'password': '789', 'role': 'customer', 'displayName': 'المستخدم'},
+      {'username': '123', 'password': '123', 'role': 'manager', 'displayName': 'المدير العام'},
+      {'username': '456', 'password': '456', 'role': 'accountant', 'displayName': 'المحاسب'},
+      {'username': '789', 'password': '789', 'role': 'customer', 'displayName': 'المستخدم'},
     ]) {
       await db.insert('app_accounts', account, conflictAlgorithm: ConflictAlgorithm.ignore);
     }
@@ -290,6 +292,22 @@ class DatabaseHelper {
     }
     if (oldVersion < 12) await _createOrdersTables(db);
 
+    if (oldVersion < 13) {
+      for (final statement in [
+        "ALTER TABLE products ADD COLUMN galleryPaths TEXT NOT NULL DEFAULT '[]'",
+        'ALTER TABLE products ADD COLUMN videoPath TEXT',
+      ]) { try { await db.execute(statement); } catch (_) {} }
+      // تحويل حسابات التجربة القديمة إلى أرقام الهاتف الجديدة.
+      for (final account in [
+        {'old': 'خالد', 'phone': '123'},
+        {'old': 'علي', 'phone': '456'},
+        {'old': 'اسامة', 'phone': '789'},
+      ]) {
+        try { await db.update('app_accounts', {'username': account['phone']}, where: 'username = ?', whereArgs: [account['old']]); } catch (_) {}
+      }
+      await _seedDefaultAccounts(db);
+    }
+
     if (oldVersion < 9) {
       try { await db.execute('CREATE INDEX IF NOT EXISTS idx_purchase_items_invoice ON purchase_items(invoiceId)'); } catch (_) {}
     }
@@ -319,19 +337,30 @@ class DatabaseHelper {
     return result.map((json) => AppUser.fromMap(json)).toList();
   }
 
-  Future<Map<String, dynamic>?> authenticateAccount(String username, String password) async {
-    final rows = await (await database).query('app_accounts', where: 'username = ? AND password = ?', whereArgs: [username.trim(), password]);
+  Future<Map<String, dynamic>?> authenticateAccount(String phone, String password) async {
+    final rows = await (await database).query('app_accounts', where: 'username = ? AND password = ?', whereArgs: [phone.trim(), password]);
     return rows.isEmpty ? null : Map<String, dynamic>.from(rows.first);
   }
 
-  Future<AppUser?> authenticateCustomer(String username, String password) async {
-    final rows = await (await database).query('users', where: 'name = ? AND password = ?', whereArgs: [username.trim(), password]);
+  Future<List<Map<String, dynamic>>> getAppAccounts() async => (await database).query('app_accounts', orderBy: 'id');
+
+  Future<int> saveAppAccount({int? id, required String phone, required String password, required String role, required String displayName}) async {
+    final db = await database;
+    final values = {'username': phone.trim(), 'password': password, 'role': role, 'displayName': displayName.trim()};
+    if (id == null) return db.insert('app_accounts', values);
+    return db.update('app_accounts', values, where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> deleteAppAccount(int id) async => (await database).delete('app_accounts', where: 'id = ?', whereArgs: [id]);
+
+  Future<AppUser?> authenticateCustomer(String phone, String password) async {
+    final rows = await (await database).query('users', where: 'phone = ? AND password = ?', whereArgs: [phone.trim(), password]);
     return rows.isEmpty ? null : AppUser.fromMap(rows.first);
   }
 
   Future<int> saveCustomer({required String username, required String password, required String phone, required String address}) async {
     final db = await database;
-    final existing = await db.query('users', where: 'name = ?', whereArgs: [username.trim()]);
+    final existing = await db.query('users', where: 'name = ? OR phone = ?', whereArgs: [username.trim(), phone.trim()]);
     if (existing.isNotEmpty) {
       final id = existing.first['id'] as int;
       await db.update('users', {'password': password, 'phone': phone, 'address': address}, where: 'id = ?', whereArgs: [id]);

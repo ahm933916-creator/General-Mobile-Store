@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class Product {
   final int? id;
   final String code;
@@ -5,6 +7,8 @@ class Product {
   final int categoryId;
   final String? imagePath;
   final String? barcodeImagePath; // حقل مسار صورة الباركود المخصص
+  final List<String> galleryPaths;
+  final String? videoPath;
   final String status;
   final int quantity;
   final int purchasedQuantity;
@@ -23,6 +27,8 @@ class Product {
     required this.categoryId,
     this.imagePath,
     this.barcodeImagePath,
+    this.galleryPaths = const [],
+    this.videoPath,
     required this.status,
     required this.quantity,
     this.purchasedQuantity = 0,
@@ -44,6 +50,8 @@ class Product {
       'categoryId': categoryId,
       'imagePath': imagePath,
       'barcodeImagePath': barcodeImagePath,
+      'galleryPaths': jsonEncode(galleryPaths),
+      'videoPath': videoPath,
       'status': status,
       'quantity': quantity,
       'purchasedQuantity': purchasedQuantity,
@@ -66,6 +74,8 @@ class Product {
       categoryId: map['categoryId'] ?? 0,
       imagePath: map['imagePath'],
       barcodeImagePath: map['barcodeImagePath'],
+      galleryPaths: _decodePaths(map['galleryPaths']),
+      videoPath: map['videoPath']?.toString(),
       status: map['status'] ?? 'متوفر',
       quantity: (map['quantity'] as num?)?.toInt() ?? 0,
       purchasedQuantity: (map['purchasedQuantity'] as num?)?.toInt() ?? 0,
@@ -77,6 +87,16 @@ class Product {
       rentalPrice: (map['rentalPrice'] as num?)?.toDouble() ?? 0.0,
       rentalStatus: map['rentalStatus']?.toString() ?? 'متاح',
     );
+  }
+
+  static List<String> _decodePaths(dynamic value) {
+    if (value is List) return value.map((item) => item.toString()).toList();
+    try {
+      final decoded = jsonDecode(value?.toString() ?? '[]');
+      return decoded is List ? decoded.map((item) => item.toString()).toList() : <String>[];
+    } catch (_) {
+      return <String>[];
+    }
   }
 }
 

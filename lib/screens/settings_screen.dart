@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/image_storage_service.dart';
 import '../theme_controller.dart';
 import '../currency_controller.dart';
+import 'accounts_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -136,6 +137,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Expanded(child: TextField(controller: _rateController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سعر صرف الدولار بالليرة'))),
                   ]),
                 ]),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            Card(
+              elevation: 3,
+              child: ListTile(
+                leading: const Icon(Icons.manage_accounts, color: Color(0xFF9C3FC1)),
+                title: const Text('تعديل المستخدمين'),
+                subtitle: const Text('تعديل المدير والمحاسب وإضافة حسابات إدارية جديدة'),
+                trailing: const Icon(Icons.chevron_left),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AccountsScreen())),
               ),
             ),
             const SizedBox(height: 16),
