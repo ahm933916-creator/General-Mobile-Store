@@ -252,6 +252,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
       floatingActionButton: FloatingActionButton(onPressed: createInvoice, child: const Icon(Icons.add)),
       body: Column(
         children: [
+          Padding(padding: const EdgeInsets.all(8), child: Row(children: [Expanded(child: _stat('مجموع المشتريات', total, Colors.blue)), Expanded(child: _stat('الديون', debt, Colors.red)), Expanded(child: _stat('الصافي', total - debt, Colors.orange))])),
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
             child: TextField(
@@ -296,7 +297,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                 ),
               ),
             ),
-          Padding(padding: const EdgeInsets.all(8), child: Row(children: [Expanded(child: _stat('مجموع المشتريات', total, Colors.blue)), Expanded(child: _stat('الديون', debt, Colors.red)), Expanded(child: _stat('الصافي', total - debt, Colors.orange))])),
           Expanded(
             child: visibleInvoices.isEmpty
                 ? const Center(child: Text('لا توجد فواتير مشتريات مطابقة'))
