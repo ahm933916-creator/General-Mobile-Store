@@ -154,7 +154,11 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
             const Divider(height: 30, thickness: 2),
             DropdownButtonFormField<Product>(initialValue: selectedProduct, hint: const Text('المنتج المحدد'), isExpanded: true, items: products.cast<Product>().map((p) => DropdownMenuItem(value: p, child: Text('${p.name} (المخزون ${p.quantity})'))).toList(), onChanged: (v) { if (v != null) choose(v); }, decoration: const InputDecoration(border: OutlineInputBorder())),
             const SizedBox(height: 10),
-            Row(children: [Expanded(child: TextField(controller: price, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سعر الشراء', border: OutlineInputBorder()))), const SizedBox(width: 8), Expanded(child: TextField(controller: quantity, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'الكمية', border: OutlineInputBorder()))), const SizedBox(width: 8), SizedBox(height: 56, child: ElevatedButton.icon(onPressed: addProduct, icon: const Icon(Icons.add), label: const Text('إضافة المنتج للفاتورة')))]),
+            TextField(controller: price, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سعر الشراء', border: OutlineInputBorder())),
+            const SizedBox(height: 10),
+            TextField(controller: quantity, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'الكمية', border: OutlineInputBorder())),
+            const SizedBox(height: 10),
+            SizedBox(height: 52, child: ElevatedButton.icon(onPressed: addProduct, icon: const Icon(Icons.add), label: const Text('إضافة المنتج للفاتورة'))),
             const SizedBox(height: 12),
             const Text('المنتجات المضافة للفاتورة:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             Container(
