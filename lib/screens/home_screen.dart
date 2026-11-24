@@ -7,6 +7,7 @@ import 'reports_screen.dart';
 import 'settings_screen.dart'; // ⚙️ استيراد صفحة الإعدادات الجديدة
 import 'purchases_screen.dart';
 import 'orders_screen.dart';
+import 'login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String role;
@@ -56,6 +57,17 @@ class _HomeScreenState extends State<HomeScreen> {
           onTap: (index) => setState(() => _selectedIndex = index),
           items: _items,
         ),
+      ),
+      floatingActionButton: FloatingActionButton.small(
+        tooltip: 'تسجيل الخروج',
+        backgroundColor: const Color(0xFF9C3FC1),
+        foregroundColor: Colors.white,
+        onPressed: () => Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (_) => false,
+        ),
+        child: const Icon(Icons.logout),
       ),
     );
   }

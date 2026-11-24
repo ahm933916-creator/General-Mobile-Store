@@ -358,6 +358,11 @@ class DatabaseHelper {
     return rows.isEmpty ? null : AppUser.fromMap(rows.first);
   }
 
+  Future<AppUser?> getCustomerByPhone(String phone) async {
+    final rows = await (await database).query('users', where: 'phone = ?', whereArgs: [phone.trim()], limit: 1);
+    return rows.isEmpty ? null : AppUser.fromMap(rows.first);
+  }
+
   Future<int> saveCustomer({required String username, required String password, required String phone, required String address}) async {
     final db = await database;
     final existing = await db.query('users', where: 'name = ? OR phone = ?', whereArgs: [username.trim(), phone.trim()]);

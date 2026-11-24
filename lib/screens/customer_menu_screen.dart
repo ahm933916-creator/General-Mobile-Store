@@ -21,6 +21,7 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
   AppUser? customer;
   int? categoryId;
   String query = '';
+  bool favoritesOnly = false;
   String displayCode = 'SYP';
   List<Map<String, dynamic>> orders = [];
 
@@ -35,6 +36,9 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
   }
 
   Future<void> _load() async {
+    if (customer == null && widget.initialUsername != null) {
+      customer = await DatabaseHelper.instance.getCustomerByPhone(widget.initialUsername!);
+    }
     final result = await Future.wait([
       DatabaseHelper.instance.getProducts(),
       DatabaseHelper.instance.getCategories(),
@@ -181,61 +185,81 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
 
   void _showDetails(Product product) {
     final paths = [product.imagePath, ...product.galleryPaths].whereType<String>().where((path) => File(path).existsSync()).toList();
+    final controller = PageController();
+    var currentPage = 0;
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(product.name),
-        content: SizedBox(
-          width: 500,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(
-                  height: 280,
-                  child: paths.isEmpty ? const Icon(Icons.inventory_2, size: 100) : PageView(children: paths.map((path) => Image.file(File(path), fit: BoxFit.contain)).toList()),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, refresh) {
+          return AlertDialog(
+            title: Text(product.name),
+            content: SizedBox(
+              width: 520,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(
+                      height: 320,
+                      child: paths.isEmpty
+                          ? const Icon(Icons.inventory_2, size: 100)
+                          : Row(
+                              children: [
+                                IconButton(
+                                  tooltip: 'الصورة السابقة',
+                                  onPressed: currentPage == 0 ? null : () => controller.previousPage(duration: const Duration(milliseconds: 250), curve: Curves.easeInOut),
+                                  icon: const Icon(Icons.arrow_back_ios),
+                                ),
+                                Expanded(
+                                  child: PageView.builder(
+                                    controller: controller,
+                                    itemCount: paths.length,
+                                    onPageChanged: (index) => refresh(() => currentPage = index),
+                                    itemBuilder: (_, index) => Image.file(File(paths[index]), fit: BoxFit.contain),
+                                  ),
+                                ),
+                                IconButton(
+                                  tooltip: 'الصورة التالية',
+                                  onPressed: currentPage == paths.length - 1 ? null : () => controller.nextPage(duration: const Duration(milliseconds: 250), curve: Curves.easeInOut),
+                                  icon: const Icon(Icons.arrow_forward_ios),
+                                ),
+                              ],
+                            ),
+                    ),
+                    if (paths.length > 1)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('${currentPage + 1} / ${paths.length}'),
+                        ],
+                      ),
+                    const SizedBox(height: 12),
+                    Text('السعر: ${_formatProductPrice(product)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Text('الكمية المتوفرة: ${product.quantity}'),
+                    if (product.videoPath != null) ListTile(leading: const Icon(Icons.video_library), title: const Text('يوجد فيديو للمنتج'), subtitle: Text(product.videoPath!)),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                Text('السعر: ${_formatProductPrice(product)}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                Text('الكمية المتوفرة: ${product.quantity}'),
-                if (product.videoPath != null) ListTile(leading: const Icon(Icons.video_library), title: const Text('يوجد فيديو للمنتج'), subtitle: Text(product.videoPath!)),
-              ],
+              ),
             ),
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إغلاق')),
-          ElevatedButton(onPressed: () { Navigator.pop(dialogContext); _add(product); }, child: const Text('إضافة للسلة')),
-        ],
-      ),
-    );
-  }
-
-  void _showFavorites(List<Product> favoriteProducts) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('المنتجات المفضلة'),
-        content: SizedBox(
-          width: 420,
-          child: favoriteProducts.isEmpty
-              ? const Text('لا توجد منتجات مفضلة')
-              : ListView(shrinkWrap: true, children: favoriteProducts.map((product) => ListTile(title: Text(product.name), subtitle: Text(_formatProductPrice(product)), onTap: () { Navigator.pop(dialogContext); _showDetails(product); })).toList()),
-        ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إغلاق')),
+              ElevatedButton(onPressed: () { Navigator.pop(dialogContext); _add(product); }, child: const Text('إضافة للسلة')),
+            ],
+          );
+        },
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final shown = products.where((product) => product.isForSale && (categoryId == null || product.categoryId == categoryId) && (query.trim().isEmpty || product.name.contains(query.trim()) || product.code.contains(query.trim()))).toList();
-    final favoriteProducts = shown.where((product) => favorites.contains(product.id)).toList();
+    final shown = products.where((product) => product.isForSale && (!favoritesOnly || favorites.contains(product.id)) && (categoryId == null || product.categoryId == categoryId) && (query.trim().isEmpty || product.name.contains(query.trim()) || product.code.contains(query.trim()))).toList();
     return Scaffold(
       appBar: AppBar(
         title: const Text('المتجر الإلكتروني'),
         actions: [
           IconButton(tooltip: 'تغيير العملة', icon: Text(displayCode == 'USD' ? 'ل.س' : '\$'), onPressed: () => setState(() => displayCode = displayCode == 'USD' ? 'SYP' : 'USD')),
-          IconButton(tooltip: 'المفضلة', icon: const Icon(Icons.favorite), onPressed: () => _showFavorites(favoriteProducts)),
+          IconButton(tooltip: favoritesOnly ? 'عرض كل المنتجات' : 'عرض المفضلة', icon: Icon(favoritesOnly ? Icons.favorite : Icons.favorite_border), onPressed: () => setState(() => favoritesOnly = !favoritesOnly)),
           IconButton(tooltip: 'الطلبات السابقة', icon: const Icon(Icons.receipt_long), onPressed: _showOrders),
           Badge(label: Text('${cart.values.fold<int>(0, (a, b) => a + b)}'), child: IconButton(tooltip: 'السلة', icon: const Icon(Icons.shopping_cart), onPressed: () => showModalBottomSheet(context: context, builder: (_) => _cartSheet()))),
           IconButton(tooltip: 'تسجيل الخروج', icon: const Icon(Icons.logout), onPressed: () => Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginScreen()), (_) => false)),
