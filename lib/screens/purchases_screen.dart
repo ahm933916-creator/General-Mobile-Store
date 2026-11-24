@@ -292,7 +292,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                 ),
               ),
             ),
-          Padding(padding: const EdgeInsets.all(8), child: Row(children: [Expanded(child: _stat('مجموع المشتريات', total, Colors.blue)), Expanded(child: _stat('الأرباح', 0, Colors.green)), Expanded(child: _stat('الديون', debt, Colors.red)), Expanded(child: _stat('الصافي', total - debt, Colors.orange))])),
+          Padding(padding: const EdgeInsets.all(8), child: Row(children: [Expanded(child: _stat('مجموع المشتريات', total, Colors.blue)), Expanded(child: _stat('الديون', debt, Colors.red)), Expanded(child: _stat('الصافي', total - debt, Colors.orange))])),
           Expanded(
             child: visibleInvoices.isEmpty
                 ? const Center(child: Text('لا توجد فواتير مشتريات مطابقة'))
