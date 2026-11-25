@@ -669,6 +669,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
             const SizedBox(height: 10),
             Row(
               children: [
+                SizedBox(width: 175, child: DropdownButtonFormField<String>(value: _inventoryStatus, items: const [DropdownMenuItem(value: 'all', child: Text('كل الحالات')), DropdownMenuItem(value: 'متوفر عام', child: Text('متوفر عام')), DropdownMenuItem(value: 'غير متوفر على المتجر', child: Text('غير متوفر على المتجر')), DropdownMenuItem(value: 'غير متوفر في المبيعات', child: Text('غير متوفر في المبيعات')), DropdownMenuItem(value: 'rent', child: Text('منتجات للإيجار')), DropdownMenuItem(value: 'sale', child: Text('منتجات للبيع'))], onChanged: (value) => setState(() => _inventoryStatus = value ?? 'all'), decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true))),
+                const SizedBox(width: 6),
                 Expanded(
                   child: TextField(
                     controller: _searchController,
@@ -676,8 +678,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
                     onChanged: (val) => setState(() => _searchQuery = val),
                   ),
                 ),
-                const SizedBox(width: 6),
-                SizedBox(width: 175, child: DropdownButtonFormField<String>(value: _inventoryStatus, items: const [DropdownMenuItem(value: 'all', child: Text('كل الحالات')), DropdownMenuItem(value: 'متوفر عام', child: Text('متوفر عام')), DropdownMenuItem(value: 'غير متوفر على المتجر', child: Text('غير متوفر على المتجر')), DropdownMenuItem(value: 'غير متوفر في المبيعات', child: Text('غير متوفر في المبيعات')), DropdownMenuItem(value: 'rent', child: Text('منتجات للإيجار')), DropdownMenuItem(value: 'sale', child: Text('منتجات للبيع'))], onChanged: (value) => setState(() => _inventoryStatus = value ?? 'all'), decoration: const InputDecoration(labelText: 'جرد الحالة', border: OutlineInputBorder(), isDense: true))),
                 IconButton(tooltip: 'خريطة المنتجات', icon: const Icon(Icons.grid_view, color: Colors.orange), onPressed: _searchFromProductMap),
                 IconButton(tooltip: 'مسح الباركود بالكاميرا', icon: const Icon(Icons.qr_code_scanner, color: Colors.blue), onPressed: _searchWithCamera),
               ],
