@@ -19,7 +19,9 @@ android {
         applicationId = "com.accounting.app.flutter_app_complete"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // Flutter لا يدعم الأجهزة الأقدم من Android 5.0، وتثبيت القيمة
+        // يمنع اختلاف إعدادات Flutter المحلية بين أجهزة البناء.
+        minSdk = 21
         targetSdk = flutter.targetSdkVersion
         // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
         // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
@@ -34,6 +36,13 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+
+    // الاحتفاظ بالمكتبات الأصلية بصيغة متوافقة مع أجهزة Android القديمة.
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
         }
     }
 }
