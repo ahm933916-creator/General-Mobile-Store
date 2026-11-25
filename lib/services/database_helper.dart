@@ -20,7 +20,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 14, // الحسابات والطلبات ومعرض صور المنتجات
+      version: 15, // مزامنة الطلبات مع المبيعات وتاريخ التوصيل
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -201,7 +201,7 @@ class DatabaseHelper {
       id INTEGER PRIMARY KEY AUTOINCREMENT, userId INTEGER, customerName TEXT NOT NULL,
       phone TEXT NOT NULL, address TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending',
       totalAmount REAL NOT NULL, currencyCode TEXT NOT NULL DEFAULT 'SYP',
-      exchangeRate REAL NOT NULL DEFAULT 1, createdAt TEXT NOT NULL)''');
+      exchangeRate REAL NOT NULL DEFAULT 1, createdAt TEXT NOT NULL, deliveredAt TEXT)''');
     await db.execute('''CREATE TABLE IF NOT EXISTS order_items (
       id INTEGER PRIMARY KEY AUTOINCREMENT, orderId INTEGER NOT NULL, productId INTEGER,
       productName TEXT NOT NULL, price REAL NOT NULL, quantity INTEGER NOT NULL, total REAL NOT NULL,
@@ -306,6 +306,10 @@ class DatabaseHelper {
         try { await db.update('app_accounts', {'username': account['phone']}, where: 'username = ?', whereArgs: [account['old']]); } catch (_) {}
       }
       await _seedDefaultAccounts(db);
+    }
+
+    if (oldVersion < 15) {
+      try { await db.execute('ALTER TABLE orders ADD COLUMN deliveredAt TEXT'); } catch (_) {}
     }
 
     if (oldVersion < 9) {
@@ -428,7 +432,40 @@ class DatabaseHelper {
     });
   }
 
-  Future<int> updateOrderStatus(int orderId, String status) async => (await database).update('orders', {'status': status}, where: 'id = ?', whereArgs: [orderId]);
+  Future<int> updateOrderStatus(int orderId, String status) async {
+    final db = await database;
+    if (status == 'shipped' || status == 'delivered') await ensureOrderSalesInvoice(orderId);
+    return db.update('orders', {'status': status, if (status == 'delivered') 'deliveredAt': DateTime.now().toIso8601String()}, where: 'id = ?', whereArgs: [orderId]);
+  }
+
+  Future<void> ensureOrderSalesInvoice(int orderId) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      final rows = await txn.query('orders', where: 'id = ?', whereArgs: [orderId], limit: 1);
+      if (rows.isEmpty) return;
+      final order = rows.first;
+      final items = await txn.query('order_items', where: 'orderId = ?', whereArgs: [orderId]);
+      final invoiceNumber = 'WEB-$orderId';
+      final existing = await txn.query('sales_invoices', where: 'invoiceNumber = ?', whereArgs: [invoiceNumber], limit: 1);
+      final invoiceId = existing.isEmpty ? await txn.insert('sales_invoices', {
+        'invoiceNumber': invoiceNumber, 'date': DateTime.now().toIso8601String().split('T').first,
+        'userId': order['userId'], 'totalAmount': order['totalAmount'], 'paidAmount': order['totalAmount'], 'remainingDebt': 0,
+        'currencyCode': order['currencyCode'] ?? 'SYP', 'exchangeRate': order['exchangeRate'] ?? 1,
+      }) : existing.first['id'] as int;
+      if (existing.isNotEmpty) {
+        await txn.update('sales_invoices', {'userId': order['userId'], 'totalAmount': order['totalAmount'], 'paidAmount': order['totalAmount'], 'remainingDebt': 0, 'currencyCode': order['currencyCode'] ?? 'SYP', 'exchangeRate': order['exchangeRate'] ?? 1}, where: 'id = ?', whereArgs: [invoiceId]);
+        final oldInvoiceItems = await txn.query('invoice_items', where: 'invoiceId = ?', whereArgs: [invoiceId]);
+        for (final oldItem in oldInvoiceItems) {
+          await txn.rawUpdate('UPDATE products SET quantity = quantity + ? WHERE id = ?', [oldItem['quantity'], oldItem['productId']]);
+        }
+        await txn.delete('invoice_items', where: 'invoiceId = ?', whereArgs: [invoiceId]);
+      }
+      for (final item in items) {
+        await txn.insert('invoice_items', {'invoiceId': invoiceId, 'productId': item['productId'], 'price': item['price'], 'quantity': item['quantity'], 'total': item['total'], 'transactionType': 'sale'});
+        await txn.rawUpdate('UPDATE products SET quantity = quantity - ? WHERE id = ?', [item['quantity'], item['productId']]);
+      }
+    });
+  }
 
   // ==================== الموردون ====================
   Future<int> insertSupplier(Supplier supplier) async => (await database).insert('suppliers', supplier.toMap());
@@ -479,6 +516,23 @@ class DatabaseHelper {
       }
       await txn.delete('purchase_items', where: 'invoiceId = ?', whereArgs: [invoiceId]);
       return txn.delete('purchase_invoices', where: 'id = ?', whereArgs: [invoiceId]);
+    });
+  }
+
+  Future<int> updatePurchaseInvoice(int invoiceId, Map<String, dynamic> data) async {
+    final db = await database;
+    return db.transaction((txn) async {
+      final oldItems = await txn.query('purchase_items', where: 'invoiceId = ?', whereArgs: [invoiceId]);
+      for (final item in oldItems) {
+        await txn.rawUpdate('UPDATE products SET quantity = quantity - ?, purchasedQuantity = purchasedQuantity - ? WHERE id = ?', [item['quantity'], item['quantity'], item['productId']]);
+      }
+      await txn.delete('purchase_items', where: 'invoiceId = ?', whereArgs: [invoiceId]);
+      await txn.update('purchase_invoices', {'invoiceNumber': data['invoiceNumber'], 'date': data['date'], 'supplierId': data['supplierId'], 'totalAmount': data['totalAmount'], 'paidAmount': data['paidAmount'], 'remainingDebt': data['remainingDebt'], 'currencyCode': data['currencyCode'] ?? 'SYP', 'exchangeRate': data['exchangeRate'] ?? 1}, where: 'id = ?', whereArgs: [invoiceId]);
+      for (final item in (data['items'] as List)) {
+        await txn.insert('purchase_items', {'invoiceId': invoiceId, 'productId': item['productId'], 'price': item['price'], 'quantity': item['quantity'], 'total': item['total']});
+        await txn.rawUpdate('UPDATE products SET quantity = quantity + ?, purchasedQuantity = purchasedQuantity + ? WHERE id = ?', [item['quantity'], item['quantity'], item['productId']]);
+      }
+      return invoiceId;
     });
   }
 

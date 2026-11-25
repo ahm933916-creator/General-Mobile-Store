@@ -253,7 +253,7 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final shown = products.where((product) => product.isForSale && (!favoritesOnly || favorites.contains(product.id)) && (categoryId == null || product.categoryId == categoryId) && (query.trim().isEmpty || product.name.contains(query.trim()) || product.code.contains(query.trim()))).toList();
+    final shown = products.where((product) => product.isForSale && product.status != 'غير متوفر على المتجر' && (!favoritesOnly || favorites.contains(product.id)) && (categoryId == null || product.categoryId == categoryId) && (query.trim().isEmpty || product.name.contains(query.trim()) || product.code.contains(query.trim()))).toList();
     return Scaffold(
       appBar: AppBar(
         title: const Text('المتجر الإلكتروني'),
@@ -314,7 +314,7 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
           child: Column(
             children: [
               const Padding(padding: EdgeInsets.all(12), child: Text('سلة الطلب', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold))),
-              Expanded(child: cart.isEmpty ? const Center(child: Text('السلة فارغة')) : ListView(children: cart.entries.map((entry) { final product = products.firstWhere((item) => item.id == entry.key); return ListTile(title: Text(product.name), subtitle: Text('الكمية: ${entry.value} | ${_formatProductPrice(product, entry.value)}'), trailing: IconButton(icon: const Icon(Icons.remove_circle, color: Colors.red), onPressed: () { setState(() { if (entry.value <= 1) { cart.remove(entry.key); } else { cart[entry.key] = entry.value - 1; } }); setSheetState(() {}); })); }).toList())),
+              Expanded(child: cart.isEmpty ? const Center(child: Text('السلة فارغة')) : ListView(children: cart.entries.map((entry) { final product = products.firstWhere((item) => item.id == entry.key); return ListTile(title: Text(product.name), subtitle: Text('الكمية: ${entry.value} | ${_formatProductPrice(product, entry.value)}'), trailing: Row(mainAxisSize: MainAxisSize.min, children: [IconButton(icon: const Icon(Icons.remove_circle, color: Colors.red), onPressed: () { setState(() { if (entry.value <= 1) { cart.remove(entry.key); } else { cart[entry.key] = entry.value - 1; } }); setSheetState(() {}); }), IconButton(icon: const Icon(Icons.add_circle, color: Colors.green), onPressed: entry.value >= product.quantity ? null : () { setState(() => cart[entry.key] = entry.value + 1); setSheetState(() {}); })])); }).toList())),
               Padding(padding: const EdgeInsets.all(12), child: Column(children: [Text('الإجمالي: ${displayCurrency.format(total)}', style: const TextStyle(fontWeight: FontWeight.bold)), const SizedBox(height: 8), SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: cart.isEmpty ? null : () { Navigator.pop(context); _confirmOrder(); }, icon: const Icon(Icons.check_circle), label: const Text('تأكيد الطلب')))])),
             ],
           ),

@@ -30,6 +30,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
   String _searchQuery = '';
   int? _inventoryCategoryId;
   String _inventorySort = 'default';
+  String _inventoryStatus = 'all';
   final GlobalKey _tablePreviewKey = GlobalKey(); // مفتاح الجدول المخصص للمعاينة والحفظ
 
   @override
@@ -298,7 +299,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
     final rentalPriceCtrl = TextEditingController(text: isEditing ? productToEdit.rentalPrice.toString() : '0');
     
     int selectedCategoryId = isEditing ? productToEdit.categoryId : _categories.first.id!;
-    String selectedStatus = isEditing ? productToEdit.status : 'متوفر';
+    String selectedStatus = isEditing ? productToEdit.status : 'متوفر عام';
+    if (!['متوفر عام', 'غير متوفر على المتجر', 'غير متوفر في المبيعات'].contains(selectedStatus)) selectedStatus = 'متوفر عام';
     bool isForSale = isEditing ? productToEdit.isForSale : true;
     bool isForRent = isEditing ? productToEdit.isForRent : false;
     String rentalStatus = isEditing ? productToEdit.rentalStatus : 'متاح';
@@ -458,7 +460,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           value: selectedStatus,
-                          items: ['متوفر', 'نفد المخزون', 'موقوف'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                          items: ['متوفر عام', 'غير متوفر على المتجر', 'غير متوفر في المبيعات'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                           onChanged: isForSale ? (val) => setDialogState(() => selectedStatus = val!) : null,
                           decoration: const InputDecoration(labelText: 'الحالة', border: OutlineInputBorder()),
                         ),
@@ -601,7 +603,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
       final name = (prod['name'] ?? '').toString().toLowerCase();
       final code = (prod['code'] ?? '').toString().toLowerCase();
       final query = _searchQuery.toLowerCase();
-      return (_inventoryCategoryId == null || prod['categoryId'] == _inventoryCategoryId) && (name.contains(query) || code.contains(query));
+      final status = prod['status']?.toString() ?? 'متوفر عام';
+      final statusMatches = _inventoryStatus == 'all' || (_inventoryStatus == 'rent' ? prod['isForRent'] == 1 : _inventoryStatus == 'sale' ? prod['isForSale'] == 1 : status == _inventoryStatus);
+      return statusMatches && (_inventoryCategoryId == null || prod['categoryId'] == _inventoryCategoryId) && (name.contains(query) || code.contains(query));
     }).toList();
     filteredProducts.sort((a, b) {
       num value(Map item, String key) => (item[key] as num?) ?? 0;
@@ -672,6 +676,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
                     onChanged: (val) => setState(() => _searchQuery = val),
                   ),
                 ),
+                const SizedBox(width: 6),
+                SizedBox(width: 175, child: DropdownButtonFormField<String>(value: _inventoryStatus, items: const [DropdownMenuItem(value: 'all', child: Text('كل الحالات')), DropdownMenuItem(value: 'متوفر عام', child: Text('متوفر عام')), DropdownMenuItem(value: 'غير متوفر على المتجر', child: Text('غير متوفر على المتجر')), DropdownMenuItem(value: 'غير متوفر في المبيعات', child: Text('غير متوفر في المبيعات')), DropdownMenuItem(value: 'rent', child: Text('منتجات للإيجار')), DropdownMenuItem(value: 'sale', child: Text('منتجات للبيع'))], onChanged: (value) => setState(() => _inventoryStatus = value ?? 'all'), decoration: const InputDecoration(labelText: 'جرد الحالة', border: OutlineInputBorder(), isDense: true))),
                 IconButton(tooltip: 'خريطة المنتجات', icon: const Icon(Icons.grid_view, color: Colors.orange), onPressed: _searchFromProductMap),
                 IconButton(tooltip: 'مسح الباركود بالكاميرا', icon: const Icon(Icons.qr_code_scanner, color: Colors.blue), onPressed: _searchWithCamera),
               ],

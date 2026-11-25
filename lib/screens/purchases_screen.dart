@@ -1,9 +1,12 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../models/models.dart';
 import '../services/database_helper.dart';
+import '../services/image_storage_service.dart';
 import '../currency_controller.dart';
 import 'barcode_scanner_screen.dart';
 import 'product_map_screen.dart';
@@ -82,24 +85,28 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
     } finally { await controller.dispose(); }
   }
 
-  Future<void> createInvoice() async {
+  Future<void> createInvoice({Map? invoiceToEdit}) async {
     if (products.isEmpty || suppliers.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('أضف مورداً ومنتجاً أولاً')));
       return;
     }
-    final number = TextEditingController(text: 'PUR-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}');
+    final number = TextEditingController(text: invoiceToEdit?['invoiceNumber']?.toString() ?? 'PUR-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}');
     final barcode = TextEditingController();
     final price = TextEditingController();
     final quantity = TextEditingController(text: '1');
-    final paid = TextEditingController();
-    Supplier supplier = suppliers.first;
+    final paid = TextEditingController(text: invoiceToEdit?['paidAmount']?.toString() ?? '');
+    Supplier supplier = suppliers.cast<Supplier>().firstWhere((s) => s.id == invoiceToEdit?['supplierId'], orElse: () => suppliers.first as Supplier);
     Product? selectedProduct;
-    bool paidManually = false;
-    final items = <Map<String, dynamic>>[];
+    bool paidManually = invoiceToEdit != null && (invoiceToEdit['paidAmount'] as num?)?.toDouble() != (invoiceToEdit['totalAmount'] as num?)?.toDouble();
+    final items = <Map<String, dynamic>>[
+      for (final item in (invoiceToEdit?['items'] as List? ?? const []))
+        {'productId': item['productId'], 'productName': item['productName'], 'price': (item['price'] as num).toDouble(), 'quantity': (item['quantity'] as num).toInt(), 'total': (item['total'] as num).toDouble()},
+    ];
 
     await showDialog<void>(context: context, builder: (dialogContext) => StatefulBuilder(
       builder: (context, setDialogState) {
         final total = items.fold<double>(0, (sum, item) => sum + (item['total'] as double));
+        if (!paidManually) paid.text = total.toStringAsFixed(2);
         final paidAmount = paidManually ? (double.tryParse(paid.text) ?? 0) : total;
         final debt = (total - paidAmount).clamp(0, double.infinity).toDouble();
 
@@ -182,7 +189,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
           ]))),
           actions: [
             TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء', style: TextStyle(color: Color(0xFF9C3FC1)))),
-            ElevatedButton(onPressed: () async { if (items.isEmpty) return; final result = await DatabaseHelper.instance.insertPurchaseInvoice({'invoiceNumber': number.text, 'date': DateTime.now().toIso8601String().split('T').first, 'supplierId': supplier.id, 'totalAmount': total, 'paidAmount': paidAmount, 'remainingDebt': debt, 'currencyCode': currencySettings.value.code, 'exchangeRate': currencySettings.value.rate, 'items': items}); if (result > 0 && dialogContext.mounted) Navigator.pop(dialogContext); load(); }, child: const Text('حفظ الفاتورة النهائية')),
+            ElevatedButton(onPressed: () async { if (items.isEmpty) return; final data = {'invoiceNumber': number.text, 'date': invoiceToEdit?['date']?.toString() ?? DateTime.now().toIso8601String().split('T').first, 'supplierId': supplier.id, 'totalAmount': total, 'paidAmount': paidAmount, 'remainingDebt': debt, 'currencyCode': invoiceToEdit?['currencyCode'] ?? currencySettings.value.code, 'exchangeRate': invoiceToEdit?['exchangeRate'] ?? currencySettings.value.rate, 'items': items}; final result = invoiceToEdit == null ? await DatabaseHelper.instance.insertPurchaseInvoice(data) : await DatabaseHelper.instance.updatePurchaseInvoice(invoiceToEdit['id'] as int, data); if (result > 0 && dialogContext.mounted) Navigator.pop(dialogContext); load(); }, child: Text(invoiceToEdit == null ? 'حفظ الفاتورة النهائية' : 'حفظ تعديل الفاتورة')),
           ],
         );
       },
@@ -231,6 +238,55 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
           ),
         ),
         actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إغلاق'))],
+      ),
+    );
+  }
+
+  void _showPurchaseInvoicePreview(Map invoice) {
+    final key = GlobalKey();
+    final items = invoice['items'] as List? ?? const [];
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('معاينة فاتورة المشتريات للطباعة'),
+        content: SizedBox(
+          width: 650,
+          child: SingleChildScrollView(
+            child: RepaintBoundary(
+              key: key,
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(18),
+                child: Directionality(
+                  textDirection: TextDirection.rtl,
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                    const Center(child: Text('شركة إدارة المخزون والمبيعات', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold))),
+                    Text('رقم الفاتورة: ${invoice['invoiceNumber']}'),
+                    Text('التاريخ: ${invoice['date']}'),
+                    Text('المورد: ${invoice['supplierName'] ?? 'مورد'}'),
+                    const Divider(),
+                    ...items.map((item) => Padding(padding: const EdgeInsets.symmetric(vertical: 4), child: Text('${item['productName']} | الكمية: ${item['quantity']} | السعر: ${formatStoredAmount((item['price'] as num).toDouble(), code: invoice['currencyCode']?.toString(), rate: (invoice['exchangeRate'] as num?)?.toDouble())} | الإجمالي: ${formatStoredAmount((item['total'] as num).toDouble(), code: invoice['currencyCode']?.toString(), rate: (invoice['exchangeRate'] as num?)?.toDouble())}'))),
+                    const Divider(),
+                    Text('مجموع الفاتورة: ${formatStoredAmount((invoice['totalAmount'] as num).toDouble(), code: invoice['currencyCode']?.toString(), rate: (invoice['exchangeRate'] as num?)?.toDouble())}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Text('الدفعة الواصلة: ${formatStoredAmount((invoice['paidAmount'] as num).toDouble(), code: invoice['currencyCode']?.toString(), rate: (invoice['exchangeRate'] as num?)?.toDouble())}'),
+                    Text('الدين المتبقي: ${formatStoredAmount((invoice['remainingDebt'] as num).toDouble(), code: invoice['currencyCode']?.toString(), rate: (invoice['exchangeRate'] as num?)?.toDouble())}', style: const TextStyle(color: Colors.red)),
+                  ]),
+                ),
+              ),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إغلاق')),
+          ElevatedButton.icon(icon: const Icon(Icons.print), label: const Text('حفظ / طباعة'), onPressed: () async {
+            final boundary = key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+            if (boundary == null) return;
+            final image = await boundary.toImage(pixelRatio: 3);
+            final bytes = (await image.toByteData(format: ui.ImageByteFormat.png))!.buffer.asUint8List();
+            final path = await ImageStorageService.saveBytes(bytes: bytes, fileName: 'purchase_${invoice['invoiceNumber']}.png');
+            if (dialogContext.mounted) { Navigator.pop(dialogContext); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم حفظ الفاتورة في: $path'))); }
+          }),
+        ],
       ),
     );
   }
@@ -306,7 +362,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                       final invoice = visibleInvoices[index];
                       final code = invoice['currencyCode']?.toString();
                       final rate = (invoice['exchangeRate'] as num?)?.toDouble();
-                      return Card(child: ListTile(title: Text('فاتورة ${invoice['invoiceNumber']} | ${invoice['supplierName'] ?? 'مورد'}'), subtitle: Text('${invoice['date']}\nالإجمالي: ${formatStoredAmount((invoice['totalAmount'] as num).toDouble(), code: code, rate: rate)} | الدين: ${formatStoredAmount((invoice['remainingDebt'] as num).toDouble(), code: code, rate: rate)}'), isThreeLine: true, trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () async { await DatabaseHelper.instance.deletePurchaseInvoice(invoice['id']); load(); })));
+                      return Card(child: ListTile(title: Text('فاتورة ${invoice['invoiceNumber']} | ${invoice['supplierName'] ?? 'مورد'}'), subtitle: Text('${invoice['date']}\nالإجمالي: ${formatStoredAmount((invoice['totalAmount'] as num).toDouble(), code: code, rate: rate)} | الدين: ${formatStoredAmount((invoice['remainingDebt'] as num).toDouble(), code: code, rate: rate)}'), isThreeLine: true, trailing: Wrap(spacing: 0, children: [IconButton(tooltip: 'تعديل الفاتورة', icon: const Icon(Icons.edit, color: Colors.blue), onPressed: () => createInvoice(invoiceToEdit: invoice)), IconButton(tooltip: 'معاينة وطباعة', icon: const Icon(Icons.print, color: Colors.green), onPressed: () => _showPurchaseInvoicePreview(invoice)), IconButton(tooltip: 'حذف', icon: const Icon(Icons.delete, color: Colors.red), onPressed: () async { await DatabaseHelper.instance.deletePurchaseInvoice(invoice['id']); load(); })])));
                     },
                   ),
           ),

@@ -26,10 +26,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
       return Card(child: ExpansionTile(
         leading: CircleAvatar(child: Text('${order['id']}')),
         title: Text('طلب #${order['id']} - ${order['customerName']}', style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text('${statuses[status] ?? status} | ${currencySettings.value.format((order['totalAmount'] as num).toDouble())}\n${order['phone']} - ${order['address']}'),
+      subtitle: Text('${statuses[status] ?? status} | ${currencySettings.value.format((order['totalAmount'] as num).toDouble())}\n${order['phone']} - ${order['address']}\n${order['deliveredAt'] == null ? 'طلب إلكتروني' : 'تاريخ التوصيل: ${order['deliveredAt'].toString().substring(0, 10)}'}'),
         children: [
           ...items.map((item) => ListTile(title: Text(item['productName'].toString()), trailing: Text('× ${item['quantity']}'))),
-          Padding(padding: const EdgeInsets.all(12), child: DropdownButtonFormField<String>(value: status, decoration: const InputDecoration(labelText: 'حالة الطلب', border: OutlineInputBorder()), items: statuses.entries.map((entry) => DropdownMenuItem(value: entry.key, child: Text(entry.value))).toList(), onChanged: (value) async { if (value == null) return; await DatabaseHelper.instance.updateOrderStatus(order['id'] as int, value); _load(); })),
+          Padding(padding: const EdgeInsets.all(12), child: DropdownButtonFormField<String>(value: status, decoration: const InputDecoration(labelText: 'حالة الطلب', border: OutlineInputBorder()), items: statuses.entries.map((entry) => DropdownMenuItem(value: entry.key, child: Text(entry.value))).toList(), onChanged: (value) async { if (value == null) return; await DatabaseHelper.instance.updateOrderStatus(order['id'] as int, value); if (context.mounted && (value == 'shipped' || value == 'delivered')) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم التأكد من الفاتورة الإلكترونية وإضافتها للمبيعات إذا لم تكن موجودة'))); _load(); })),
         ],
       ));
     })),

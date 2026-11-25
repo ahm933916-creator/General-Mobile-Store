@@ -53,7 +53,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       setState(() {
         _salesInvoices = invoices;
         _users = usersList;
-        _products = productsList;
+        _products = productsList.where((product) => product.status != 'غير متوفر في المبيعات').toList();
         _isLoadingData = false;
       });
     } catch (e) {
