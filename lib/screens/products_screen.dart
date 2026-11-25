@@ -669,8 +669,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
             const SizedBox(height: 10),
             Row(
               children: [
-                SizedBox(width: 220, child: DropdownButtonFormField<String>(value: _inventoryStatus, isExpanded: true, menuMaxHeight: 360, items: const [DropdownMenuItem(value: 'all', child: Text('كل الحالات', textDirection: TextDirection.rtl)), DropdownMenuItem(value: 'متوفر عام', child: Text('متوفر عام', textDirection: TextDirection.rtl)), DropdownMenuItem(value: 'غير متوفر على المتجر', child: Text('غير متوفر على المتجر', textDirection: TextDirection.rtl)), DropdownMenuItem(value: 'غير متوفر في المبيعات', child: Text('غير متوفر في المبيعات', textDirection: TextDirection.rtl)), DropdownMenuItem(value: 'rent', child: Text('منتجات للإيجار', textDirection: TextDirection.rtl)), DropdownMenuItem(value: 'sale', child: Text('منتجات للبيع', textDirection: TextDirection.rtl))], onChanged: (value) => setState(() => _inventoryStatus = value ?? 'all'), decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true))),
-                const SizedBox(width: 6),
                 Expanded(
                   child: TextField(
                     controller: _searchController,
@@ -680,6 +678,12 @@ class _ProductsScreenState extends State<ProductsScreen> {
                 ),
                 IconButton(tooltip: 'خريطة المنتجات', icon: const Icon(Icons.grid_view, color: Colors.orange), onPressed: _searchFromProductMap),
                 IconButton(tooltip: 'مسح الباركود بالكاميرا', icon: const Icon(Icons.qr_code_scanner, color: Colors.blue), onPressed: _searchWithCamera),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(child: DropdownButtonFormField<String>(value: _inventoryStatus, isExpanded: true, menuMaxHeight: 360, items: const [DropdownMenuItem(value: 'all', child: Text('كل الحالات', textDirection: TextDirection.rtl)), DropdownMenuItem(value: 'متوفر عام', child: Text('متوفر عام', textDirection: TextDirection.rtl)), DropdownMenuItem(value: 'غير متوفر على المتجر', child: Text('غير متوفر على المتجر', textDirection: TextDirection.rtl)), DropdownMenuItem(value: 'غير متوفر في المبيعات', child: Text('غير متوفر في المبيعات', textDirection: TextDirection.rtl)), DropdownMenuItem(value: 'rent', child: Text('منتجات للإيجار', textDirection: TextDirection.rtl)), DropdownMenuItem(value: 'sale', child: Text('منتجات للبيع', textDirection: TextDirection.rtl))], onChanged: (value) => setState(() => _inventoryStatus = value ?? 'all'), decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true))),
               ],
             ),
             const SizedBox(height: 10),

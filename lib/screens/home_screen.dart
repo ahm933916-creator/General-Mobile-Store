@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'products_screen.dart';
 import 'users_screen.dart';
 import 'appointments_screen.dart';
-import 'expenses_screen.dart';
-import 'reports_screen.dart';
 import 'settings_screen.dart'; // ⚙️ استيراد صفحة الإعدادات الجديدة
 import 'purchases_screen.dart';
 import 'orders_screen.dart';
@@ -23,7 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<Widget> get _screens {
     final common = <Widget>[const AppointmentsScreen(), const PurchasesScreen(), const ProductsScreen(), const UsersScreen(), const OrdersScreen()];
-    if (widget.role == 'manager') return [...common, const ExpensesScreen(), const ReportsScreen(), const SettingsScreen()];
+    if (widget.role == 'manager') return [...common, const SettingsScreen()];
     return common;
   }
 
@@ -35,7 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
       BottomNavigationBarItem(icon: Icon(Icons.people), label: 'المستخدمين'),
       BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'الطلبات'),
     ];
-    if (widget.role == 'manager') return [...common, const BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet), label: 'المصروفات'), const BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'التقارير'), const BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'الإعدادات')];
+    if (widget.role == 'manager') return [...common, const BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'الإعدادات')];
     return common;
   }
 

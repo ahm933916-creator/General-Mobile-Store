@@ -12,6 +12,7 @@ import '../services/image_storage_service.dart';
 import '../currency_controller.dart';
 import 'barcode_scanner_screen.dart';
 import 'product_map_screen.dart';
+import 'users_screen.dart';
 
 class AppointmentsScreen extends StatefulWidget {
   const AppointmentsScreen({super.key});
@@ -895,6 +896,11 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
             icon: const Icon(Icons.table_chart),
             label: const Text('معاينة وطباعة جدول'),
             onPressed: _showTablePreviewDialog,
+          ),
+          IconButton(
+            tooltip: 'المستخدمين والعملاء',
+            icon: const Icon(Icons.people),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UsersScreen())),
           ),
           const SizedBox(width: 10),
         ],

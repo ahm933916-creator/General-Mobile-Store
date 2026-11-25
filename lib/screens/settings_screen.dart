@@ -6,6 +6,8 @@ import '../services/image_storage_service.dart';
 import '../theme_controller.dart';
 import '../currency_controller.dart';
 import 'accounts_screen.dart';
+import 'expenses_screen.dart';
+import 'reports_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -83,6 +85,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.account_balance_wallet),
+                    label: const Text('المصروفات'),
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpensesScreen())),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.bar_chart),
+                    label: const Text('التقارير'),
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsScreen())),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             // 1. تعديل الاسم العام للبرنامج
             Card(
               elevation: 3,
