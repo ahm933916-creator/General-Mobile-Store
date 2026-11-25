@@ -39,6 +39,15 @@ android {
         }
     }
 
+    // بعض الأجهزة القديمة لا تفهم توقيع APK الحديث V2 وحده.
+    // تفعيل V1 مع V2 يجعل APK قابلاً للتثبيت على Android 5/6 والأجهزة الأحدث.
+    signingConfigs {
+        getByName("debug") {
+            enableV1Signing = true
+            enableV2Signing = true
+        }
+    }
+
     // الاحتفاظ بالمكتبات الأصلية بصيغة متوافقة مع أجهزة Android القديمة.
     packaging {
         jniLibs {
